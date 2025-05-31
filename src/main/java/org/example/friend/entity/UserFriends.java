@@ -36,6 +36,7 @@ public class UserFriends {
         this.friendId = friendId;
     }
 
+
     /***** getter / setter *****/
     public Long getUserId() {
         return userId;
