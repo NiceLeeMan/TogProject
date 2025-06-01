@@ -7,36 +7,32 @@ import org.example.user.entity.User;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+// Message.java
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 /**
- * message 테이블 엔티티
+ * message 테이블 매핑 엔티티
  *
- * CREATE TABLE `message` (
- *   `msg_id`     BIGINT NOT NULL AUTO_INCREMENT,
- *   `room_id`    INT    NOT NULL,
- *   `sender_id`  INT    NOT NULL,
- *   `contents`   TEXT   NOT NULL,
- *   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
- *   PRIMARY KEY (`msg_id`),
- *   FOREIGN KEY (`room_id`)   REFERENCES `chat_room`(`room_id`) ON DELETE CASCADE ON UPDATE CASCADE,
- *   FOREIGN KEY (`sender_id`) REFERENCES `user`(`id`)      ON DELETE SET NULL  ON UPDATE CASCADE
- * );
- *
- * ‼ DAO/Service에서 chatRoom, sender 연관 필드를 직접 조회하여 세팅해 주어야 함.
+ * - msgId     : PK (AUTO_INCREMENT)
+ * - roomId    : 메시지가 속한 채팅방 ChatRoom.roomId (FK)
+ * - senderId  : 메시지를 보낸 사용자 User.id (FK)
+ * - contents  : 메시지 본문
+ * - createdAt : 전송 시각 (LocalDateTime)
  */
 public class Message {
-    private Long msgId;               // PK
-    private Long roomId;               // chat_room.room_id 참조
-    private Long senderId;             // user.id 참조
-    private String contents;          // 메시지 본문
-    private LocalDateTime createdAt;  // 전송 시각
+    private Long msgId;
+    private Long roomId;
+    private Long senderId;
+    private String contents;
+    private LocalDateTime createdAt;
 
-    /** 관계 필드 **/
-    private ChatRoom chatRoom;  // 어떤 채팅방에서 보낸 메시지인지
-    private User sender;        // 누가 보낸 메시지인지
-
+    // 기본 생성자
     public Message() { }
 
-    public Message(long msgId, Long roomId, Long senderId, String contents, LocalDateTime createdAt) {
+    // 전체 필드를 받는 생성자
+    public Message(Long msgId, Long roomId, Long senderId, String contents, LocalDateTime createdAt) {
         this.msgId = msgId;
         this.roomId = roomId;
         this.senderId = senderId;
@@ -44,7 +40,7 @@ public class Message {
         this.createdAt = createdAt;
     }
 
-    /***** getter / setter *****/
+    /* ===== Getter / Setter ===== */
     public Long getMsgId() {
         return msgId;
     }
@@ -85,22 +81,6 @@ public class Message {
         this.createdAt = createdAt;
     }
 
-    public ChatRoom getChatRoom() {
-        return chatRoom;
-    }
-
-    public void setChatRoom(ChatRoom chatRoom) {
-        this.chatRoom = chatRoom;
-    }
-
-    public User getSender() {
-        return sender;
-    }
-
-    public void setSender(User sender) {
-        this.sender = sender;
-    }
-
     @Override
     public String toString() {
         return "Message{" +
@@ -109,8 +89,6 @@ public class Message {
                 ", senderId=" + senderId +
                 ", contents='" + contents + '\'' +
                 ", createdAt=" + createdAt +
-                ", chatRoom=" + (chatRoom != null ? chatRoom.getRoomName() : "null") +
-                ", sender=" + (sender != null ? sender.getUserId() : "null") +
                 '}';
     }
 
@@ -118,8 +96,8 @@ public class Message {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Message)) return false;
-        Message message = (Message) o;
-        return msgId == message.msgId;
+        Message that = (Message) o;
+        return Objects.equals(msgId, that.msgId);
     }
 
     @Override

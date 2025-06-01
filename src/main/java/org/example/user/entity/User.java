@@ -2,10 +2,8 @@ package org.example.user.entity;
 
 
 import org.example.chat.entity.ChatRoomMember;
-import org.example.friend.entity.UserFriends;
 import org.example.memo.entity.Memo;
 import org.example.message.entity.Message;
-
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,49 +23,59 @@ import java.util.List;
  *
  * ‼ 동작을 위해 DAO/Service에서 직접 관계 데이터를 채워 주어야 합니다.
  */
+
+/**
+ * user 테이블 매핑 엔티티
+ *
+ * 관계 필드:
+ * - friends       : 내가 “추가”한 친구들 (단방향)
+ * - memos         : 내가 작성한 메모들 (owner 기준)
+ * - chatRoomEntries: 내가 속한 채팅방 멤버십 엔트리들 (ChatRoomMember)
+ * - messagesSent  : 내가 보낸 메시지들
+ */
 public class User {
-    private Long id;           // PK
-    private String name;      // 회원 실명
-    private String userId;    // 로그인 아이디 (유니크)
-    private String password;  // 해시 처리된 비밀번호
-    private boolean status;   // 온라인/오프라인 상태 (true=온라인, false=오프라인)
+    private Long id;
+    private String name;
+    private String userId;
+    private String password;
+    private Boolean status; // true: 온라인, false: 오프라인
 
-    /***** 연관 관계 필드 *****/
-    // 1) 친구 관계: user_friends 테이블에서 이 userId가 가진 친구 목록
-    private List<UserFriends> friends = new ArrayList<>();
+    /* ===== 관계 필드 ===== */
+    // 1) User → List<User> : 내가 추가한 친구들 (단방향)
+    private List<User> friends;
 
-    // 2) 메모: 이 사용자가 보낸 메모 목록 (owner_id = this.id)
-    private List<Memo> memosSent = new ArrayList<>();
+    // 2) User → List<Memo> : 내가 작성한 메모들 (단방향: owner 가 나)
+    private List<Memo> memos;
 
-    // 3) 메모: 이 사용자가 받은 메모 목록 (friend_id = this.id)
-    private List<Memo> memosReceived = new ArrayList<>();
+    // 3) User → List<ChatRoomMember> : 내가 참여한 채팅방 엔트리들
+    private List<ChatRoomMember> chatRoomEntries;
 
-    // 4) 채팅방 멤버 관계: 이 사용자가 속한 chat_room_member 목록
-    private List<ChatRoomMember> chatRoomMemberships = new ArrayList<>();
+    // 4) User → List<Message> : 내가 보낸 메시지들
+    private List<Message> messagesSent;
 
-    // 5) 메시지: 이 사용자가 보낸 메시지 목록 (sender_id = this.id)
-    private List<Message> messagesSent = new ArrayList<>();
-
-    public User() { }
-
-    /** 회원 가입 시 사용 (id 미지정) */
-    public User(String name, String userId, String password) {
-        this.name = name;
-        this.userId = userId;
-        this.password = password;
-        this.status = false; // 기본 오프라인
+    // 기본 생성자: 컬렉션 필드는 빈 ArrayList로 초기화
+    public User() {
+        this.friends = new ArrayList<>();
+        this.memos = new ArrayList<>();
+        this.chatRoomEntries = new ArrayList<>();
+        this.messagesSent = new ArrayList<>();
     }
 
-    /** DB에서 조회할 때 사용 (id 포함) */
-    public User(Long id, String name, String userId, String password, boolean status) {
+    // 전체 필드를 받는 생성자 (관계 필드는 외부에서 세팅해 주어도 되고, 빈 리스트로 두어도 무방)
+    public User(Long id, String name, String userId, String password, Boolean status) {
         this.id = id;
         this.name = name;
         this.userId = userId;
         this.password = password;
         this.status = status;
+
+        this.friends = new ArrayList<>();
+        this.memos = new ArrayList<>();
+        this.chatRoomEntries = new ArrayList<>();
+        this.messagesSent = new ArrayList<>();
     }
 
-    /***** getter / setter *****/
+    /* ===== Getter / Setter (기본 필드) ===== */
     public Long getId() {
         return id;
     }
@@ -100,46 +108,51 @@ public class User {
         this.password = password;
     }
 
-    public boolean isStatus() {
+    public Boolean getStatus() {
         return status;
     }
 
-    public void setStatus(boolean status) {
+    public void setStatus(Boolean status) {
         this.status = status;
     }
 
-    public List<UserFriends> getFriends() {
+    /* ===== Getter / Setter (관계 필드) ===== */
+    /**
+     * 내가 “추가”한 친구 목록 (User 객체 리스트)
+     */
+    public List<User> getFriends() {
         return friends;
     }
 
-    public void setFriends(List<UserFriends> friends) {
+    public void setFriends(List<User> friends) {
         this.friends = friends;
     }
 
-    public List<Memo> getMemosSent() {
-        return memosSent;
+    /**
+     * 내가 작성한 메모들 (Memo 객체 리스트)
+     */
+    public List<Memo> getMemos() {
+        return memos;
     }
 
-    public void setMemosSent(List<Memo> memosSent) {
-        this.memosSent = memosSent;
+    public void setMemos(List<Memo> memos) {
+        this.memos = memos;
     }
 
-    public List<Memo> getMemosReceived() {
-        return memosReceived;
+    /**
+     * 내가 참여 중인 채팅방 멤버쉽 엔트리들 (ChatRoomMember 객체 리스트)
+     */
+    public List<ChatRoomMember> getChatRoomEntries() {
+        return chatRoomEntries;
     }
 
-    public void setMemosReceived(List<Memo> memosReceived) {
-        this.memosReceived = memosReceived;
+    public void setChatRoomEntries(List<ChatRoomMember> chatRoomEntries) {
+        this.chatRoomEntries = chatRoomEntries;
     }
 
-    public List<ChatRoomMember> getChatRoomMemberships() {
-        return chatRoomMemberships;
-    }
-
-    public void setChatRoomMemberships(List<ChatRoomMember> chatRoomMemberships) {
-        this.chatRoomMemberships = chatRoomMemberships;
-    }
-
+    /**
+     * 내가 보낸 메시지들 (Message 객체 리스트)
+     */
     public List<Message> getMessagesSent() {
         return messagesSent;
     }
@@ -154,31 +167,25 @@ public class User {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", userId='" + userId + '\'' +
-                ", password='<숨김>'" +
+                ", password='" + password + '\'' +
                 ", status=" + status +
-                ", friends=" + friends +
-                ", memosSent=" + memosSent +
-                ", memosReceived=" + memosReceived +
-                ", chatRoomMemberships=" + chatRoomMemberships +
-                ", messagesSent=" + messagesSent +
+                ", friendsCount=" + (friends != null ? friends.size() : 0) +
+                ", memosCount=" + (memos != null ? memos.size() : 0) +
+                ", chatRoomsCount=" + (chatRoomEntries != null ? chatRoomEntries.size() : 0) +
+                ", messagesSentCount=" + (messagesSent != null ? messagesSent.size() : 0) +
                 '}';
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (!(o instanceof User)) return false;
         User user = (User) o;
-        return id == user.id &&
-                status == user.status &&
-                Objects.equals(name, user.name) &&
-                Objects.equals(userId, user.userId) &&
-                Objects.equals(password, user.password);
+        return Objects.equals(getId(), user.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, userId, password, status);
+        return Objects.hash(getId());
     }
 }

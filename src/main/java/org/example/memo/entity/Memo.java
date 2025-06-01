@@ -2,40 +2,32 @@ package org.example.memo.entity;
 
 
 
-import org.example.user.entity.User;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+// Memo.java
+
 /**
- * memo 테이블 엔티티
+ * memo 테이블 매핑 엔티티
  *
- * CREATE TABLE `memo` (
- *   `memo_id`    INT      NOT NULL AUTO_INCREMENT,
- *   `owner_id`   INT      NOT NULL,
- *   `friend_id`  INT      NOT NULL,
- *   `content`    TEXT     NOT NULL,
- *   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
- *   PRIMARY KEY (`memo_id`),
- *   FOREIGN KEY (`owner_id`)  REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
- *   FOREIGN KEY (`friend_id`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
- * );
- *
- * ‼ DAO/Service에서 owner, friend 연관 필드를 직접 조회하여 세팅해 주어야 함.
+ * - memoId    : PK (AUTO_INCREMENT)
+ * - ownerId   : 메모 작성자 User.id (FK)
+ * - friendId  : 메모 대상 User.id (FK)
+ * - content   : 메모 본문
+ * - createdAt : 작성 시각 (LocalDateTime)
  */
+
 public class Memo {
-    private Long memoId;               // PK
-    private Long ownerId;              // User.id 참조
-    private Long friendId;             // User.id 참조
-    private String content;           // 메모 본문
-    private LocalDateTime createdAt;  // 작성 시각
+    private Long memoId;
+    private Long ownerId;
+    private Long friendId;
+    private String content;
+    private LocalDateTime createdAt;
 
-    /** 관계 필드 **/
-    private User owner;   // 메모를 보낸 사람(객체)
-    private User friend;  // 메모를 받은 사람(객체)
-
+    // 기본 생성자
     public Memo() { }
 
+    // 전체 필드를 받는 생성자
     public Memo(Long memoId, Long ownerId, Long friendId, String content, LocalDateTime createdAt) {
         this.memoId = memoId;
         this.ownerId = ownerId;
@@ -44,7 +36,7 @@ public class Memo {
         this.createdAt = createdAt;
     }
 
-    /***** getter / setter *****/
+    /* ===== Getter / Setter ===== */
     public Long getMemoId() {
         return memoId;
     }
@@ -85,22 +77,6 @@ public class Memo {
         this.createdAt = createdAt;
     }
 
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    public User getFriend() {
-        return friend;
-    }
-
-    public void setFriend(User friend) {
-        this.friend = friend;
-    }
-
     @Override
     public String toString() {
         return "Memo{" +
@@ -109,8 +85,6 @@ public class Memo {
                 ", friendId=" + friendId +
                 ", content='" + content + '\'' +
                 ", createdAt=" + createdAt +
-                ", owner=" + (owner != null ? owner.getUserId() : "null") +
-                ", friend=" + (friend != null ? friend.getUserId() : "null") +
                 '}';
     }
 
@@ -118,8 +92,8 @@ public class Memo {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Memo)) return false;
-        Memo memo = (Memo) o;
-        return memoId == memo.memoId;
+        Memo that = (Memo) o;
+        return Objects.equals(memoId, that.memoId);
     }
 
     @Override
