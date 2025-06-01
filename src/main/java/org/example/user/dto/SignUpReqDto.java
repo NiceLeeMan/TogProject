@@ -1,4 +1,4 @@
-package org.example.chat.dto;
+package org.example.user.dto;
 
 // SignUpReqDto.java
 public class SignUpReqDto {
