@@ -3,7 +3,7 @@ package org.example.user.dto;
 // SignUpReqDto.java
 public class SignUpReqDto {
     private String name;
-    private String userId;
+    private String username;
     private String password;
 
     // 기본 생성자 (Jackson, Gson 등 JSON 매핑 라이브러리용)
@@ -12,7 +12,7 @@ public class SignUpReqDto {
     // 전체 필드를 받는 생성자
     public SignUpReqDto(String name, String userId, String password) {
         this.name = name;
-        this.userId = userId;
+        this.username = userId;
         this.password = password;
     }
 
@@ -21,8 +21,8 @@ public class SignUpReqDto {
         return name;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
     public String getPassword() {
@@ -33,7 +33,7 @@ public class SignUpReqDto {
     public String toString() {
         return "SignUpReqDto{" +
                 "name='" + name + '\'' +
-                ", userId='" + userId + '\'' +
+                ", userId='" + username + '\'' +
                 ", password='[PROTECTED]'" +
                 '}';
     }

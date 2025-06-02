@@ -2,7 +2,7 @@ package org.example.user.dto;
 
 // SignInReqDto.java
 public class SignInReqDto {
-    private String userId;
+    private String username;
     private String password;
 
     // 기본 생성자
@@ -10,13 +10,13 @@ public class SignInReqDto {
 
     // 전체 필드를 받는 생성자
     public SignInReqDto(String userId, String password) {
-        this.userId = userId;
+        this.username = userId;
         this.password = password;
     }
 
     /* ===== Getter ===== */
-    public String getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
     public String getPassword() {
@@ -26,7 +26,7 @@ public class SignInReqDto {
     @Override
     public String toString() {
         return "SignInReqDto{" +
-                "userId='" + userId + '\'' +
+                "userId='" + username + '\'' +
                 ", password='[PROTECTED]'" +
                 '}';
     }

@@ -36,7 +36,7 @@ import java.util.List;
 public class User {
     private Long id;
     private String name;
-    private String userId;
+    private String username;
     private String password;
     private Boolean status; // true: 온라인, false: 오프라인
 
@@ -65,7 +65,7 @@ public class User {
     public User(Long id, String name, String userId, String password, Boolean status) {
         this.id = id;
         this.name = name;
-        this.userId = userId;
+        this.username = userId;
         this.password = password;
         this.status = status;
 
@@ -92,12 +92,12 @@ public class User {
         this.name = name;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {
@@ -166,7 +166,7 @@ public class User {
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", userId='" + userId + '\'' +
+                ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", status=" + status +
                 ", friendsCount=" + (friends != null ? friends.size() : 0) +
