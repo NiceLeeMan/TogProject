@@ -17,7 +17,9 @@ import org.example.user.dto.SignUpResDto;
 import org.example.user.service.UserService;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Properties;
 
 /**
  * UserController: HTTP 요청을 처리하여 Service를 호출하고, JSON 응답을 반환하는 서블릿
@@ -38,21 +40,30 @@ public class UserController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         super.init();
-        // 1) DataSource 설정 (예: HikariCP)
+
+        // 1) db.properties 파일을 Resource Stream으로 읽어오기
+        Properties props = new Properties();
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+            if (is == null) {
+                throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
+            }
+            props.load(is);
+        } catch (IOException e) {
+            throw new ServletException("db.properties 로딩 실패", e);
+        }
+
+        // 2) HikariCP 설정
         com.zaxxer.hikari.HikariConfig config = new com.zaxxer.hikari.HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://localhost:3306/your_database");
-        config.setUsername("db_user");
-        config.setPassword("db_password");
+        config.setJdbcUrl(props.getProperty("jdbc.url"));
+        config.setUsername(props.getProperty("jdbc.username"));
+        config.setPassword(props.getProperty("jdbc.password"));
         com.zaxxer.hikari.HikariDataSource ds = new com.zaxxer.hikari.HikariDataSource(config);
 
-        // 2) DAO와 Service 인스턴스 생성
+        // 3) DAO, Service, Jackson ObjectMapper 초기화
         UserDAO userDAO = new UserDAO(ds);
         this.userService = new UserService(userDAO);
-
-        // 3) Jackson ObjectMapper 초기화
         this.objectMapper = new ObjectMapper();
     }
-
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {

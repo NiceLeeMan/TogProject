@@ -24,12 +24,12 @@
             <scope>provided</scope>
         </dependency>
 
-<!--        &lt;!&ndash; 2) MySQL Connector/J: 버전을 서버(8.0.42)에 맞춤 &ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>mysql</groupId>-->
-<!--            <artifactId>mysql-connector-java</artifactId>-->
-<!--            <version>8.0.42</version>-->
-<!--        </dependency>-->
+        <!-- 2) MySQL Connector/J: 버전을 서버(8.0.42)에 맞춤 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.32</version>
+        </dependency>
 
         <!-- 3) (선택) Jackson: JSON 직렬화/역직렬화 -->
         <dependency>
