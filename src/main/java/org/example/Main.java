@@ -1,8 +1,7 @@
 package org.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.friend.dto.AddFriendReqDto;
-import org.example.friend.dto.AddFriendResDto;
+import org.example.friend.dto.*;
 import org.example.user.dto.SignInReqDto;
 import org.example.user.dto.SignInResDto;
 
@@ -10,6 +9,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class Main {
 
@@ -20,21 +20,34 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Main tester = new Main();
 
-        // 3. 친구 추가 테스트 (hong123 → kim456)
-        // (사전에 kim456 계정이 반드시 회원가입되어 있어야 합니다.)
-        System.out.println("=== 3. 친구 추가(AddFriend) 테스트 ===");
-        AddFriendReqDto addReq = new AddFriendReqDto("hong123", "lee123");
+//        // 3. 친구 추가 테스트 (hong123 → kim456)
+//        // (사전에 kim456 계정이 반드시 회원가입되어 있어야 합니다.)
+//
+//        AddFriendReqDto addReq = new AddFriendReqDto("hong123", "jung123");
+//        AddFriendResDto addRes = tester.sendAddFriend(addReq);
+//        System.out.println("AddFriend 응답: " + (addRes != null
+//                ? tester.objectMapper.writeValueAsString(addRes)
+//                : "친구 추가 실패 또는 응답이 null입니다"));
+//        System.out.println();
 
-        System.out.println("addReq = " + addReq);
-        AddFriendResDto addRes = tester.sendAddFriend(addReq);
-
-        System.out.println("addRes = " + addRes);
-        System.out.println("AddFriend 응답: " + (addRes != null
-                ? tester.objectMapper.writeValueAsString(addRes)
-                : "친구 추가 실패 또는 응답이 null입니다"));
+        // 5. 친구 삭제 테스트 (hong123 → kim456)
+        System.out.println("=== 5. 친구 삭제(RemoveFriend) 테스트 ===");
+        RemoveFriendReqDto removeReq = new RemoveFriendReqDto("hong123", "jung123");
+        RemoveFriendResDto removeRes = tester.sendRemoveFriend(removeReq);
+        System.out.println("RemoveFriend 응답: " + (removeRes != null
+                ? tester.objectMapper.writeValueAsString(removeRes)
+                : "친구 삭제 실패 또는 응답이 null입니다"));
         System.out.println();
 
-
+        // 6. 최종 친구 목록 조회 (hong123)
+        System.out.println("=== 6. 최종 친구 목록 조회(GetFriendsList) 테스트 ===");
+        List<FriendInfo> finalFriendsList = tester.sendGetFriendList("hong123");
+        if (finalFriendsList != null) {
+            System.out.println("최종 친구 목록:");
+            System.out.println(tester.objectMapper.writeValueAsString(finalFriendsList));
+        } else {
+            System.out.println("GetFriendsList 실패 또는 응답이 null입니다");
+        }
     }
 
 
@@ -87,6 +100,62 @@ public class Main {
             return null;
         }
     }
+    // 4) 친구 목록 조회(GetFriendsList) 호출
+    private List<FriendInfo> sendGetFriendList(String username) throws IOException {
+        String targetUrl = BASE_FRIEND_URL + "?username=" + username;
+
+        System.out.println("targetUrl: " + targetUrl);
+        System.out.println("sendGetFriendList() : 진입성공");
+
+        URL url = new URL(targetUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Accept", "application/json");
+
+        int status = conn.getResponseCode();
+        System.out.println("status: " + status);
+        if (status == HttpURLConnection.HTTP_OK) {
+            String responseJson = readResponseBody(conn.getInputStream());
+            System.out.println("responseJson: " + responseJson);
+            GetFriendsListResDto resDto = objectMapper.readValue(responseJson, GetFriendsListResDto.class);
+            return resDto.getFriendsList();
+
+        } else {
+            String errorJson = readResponseBody(conn.getErrorStream());
+            System.err.println("GetFriendsList 오류(HTTP " + status + "): " + errorJson);
+            return null;
+        }
+    }
+
+    private RemoveFriendResDto sendRemoveFriend(RemoveFriendReqDto reqDto) throws IOException {
+        String targetUrl = BASE_FRIEND_URL;
+
+        System.out.println("targetUrl: " + targetUrl);
+        System.out.println("sendRemoveFriend() : 진입성공");
+        String requestJson = objectMapper.writeValueAsString(reqDto);
+
+        URL url = new URL(targetUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("DELETE");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        conn.setRequestProperty("Accept", "application/json");
+
+        writeRequestBody(conn, requestJson);
+
+        int status = conn.getResponseCode();
+        System.out.println("status: " + status);
+        if (status == HttpURLConnection.HTTP_OK) {
+            String responseJson = readResponseBody(conn.getInputStream());
+            System.out.println("responseJson: " + responseJson);
+            return objectMapper.readValue(responseJson, RemoveFriendResDto.class);
+        } else {
+            String errorJson = readResponseBody(conn.getErrorStream());
+            System.err.println("RemoveFriend 오류(HTTP " + status + "): " + errorJson);
+            return null;
+        }
+    }
+
 
     private HttpURLConnection createPostConnection(String urlString, String contentType) throws IOException {
         URL url = new URL(urlString);

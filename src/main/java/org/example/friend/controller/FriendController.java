@@ -5,20 +5,24 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.friend.dao.FriendDAO;
 import org.example.friend.dto.*;
 import org.example.friend.service.FriendService;
-import org.example.friend.dao.FriendDAO;
-import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * FriendController: "/api/friends/*" 로 매핑되어,
- * - POST   /api/friends       → 친구 추가
- * - GET    /api/friends?username=xxx  → 친구 목록 조회
- * - DELETE /api/friends       → 친구 삭제 (body: username, friendUsername)
+ * - POST   /api/friends          → 친구 추가 (JSON body: { "username":"...", "friendUsername":"..." })
+ * - GET    /api/friends?username=xxx → 친구 목록 조회
+ * - DELETE /api/friends          → 친구 삭제 (JSON body: { "username":"...", "friendUsername":"..." })
  */
 public class FriendController extends HttpServlet {
 
@@ -28,13 +32,37 @@ public class FriendController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         super.init();
-        // DataSource 설정(예: HikariCP) 부분
-        DataSource dataSource = (DataSource) getServletContext().getAttribute("datasource");
-        // 만약 getServletContext()에 datasource가 등록되어 있지 않으면, 직접 생성해도 됩니다:
-        // HikariConfig config = new HikariConfig();
-        // config.setJdbcUrl(...); config.setUsername(...); config.setPassword(...);
-        // DataSource dataSource = new HikariDataSource(config);
-        this.friendService = new FriendService(new FriendDAO(dataSource));
+        System.out.println("FriendController.init 진입 성공");
+
+        // 1) db.properties 파일 로딩
+        Properties props = new Properties();
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+            if (is == null) {
+                throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
+            }
+            props.load(is);
+        } catch (IOException e) {
+            throw new ServletException("db.properties 로딩 실패", e);
+        }
+
+        System.out.println("▶ FriendController에서 읽은 jdbc.url = " + props.getProperty("jdbc.url"));
+        System.out.println("▶ FriendController에서 읽은 jdbc.username = " + props.getProperty("jdbc.username"));
+
+        HikariDataSource ds;
+        try {
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(props.getProperty("jdbc.url"));
+            config.setUsername(props.getProperty("jdbc.username"));
+            config.setPassword(props.getProperty("jdbc.password"));
+            ds = new HikariDataSource(config);
+        } catch (Exception e) {
+            throw new ServletException("HikariDataSource 초기화 중 예외 발생", e);
+        }
+
+        System.out.println(">>> 예외문 통과");
+
+        FriendDAO friendDAO = new FriendDAO(ds);
+        this.friendService = new FriendService(friendDAO);
         this.objectMapper = new ObjectMapper();
 
         System.out.println(">>> FriendController.init() 호출됨");
@@ -48,8 +76,8 @@ public class FriendController extends HttpServlet {
             throws ServletException, IOException {
         System.out.println(">>> FriendController.doGet() 진입: pathInfo=" + req.getPathInfo());
 
-        // pathInfo는 "/something" 또는 "/" 또는 null. 우리는 GET /api/friends?username=xxx 만 처리
-        String path = req.getPathInfo();
+        // pathInfo가 null 또는 "/" 일 때만 처리
+        String path = req.getPathInfo(); // /api/friends 로 요청하면 pathInfo == null
         if (path == null || "/".equals(path)) {
             String username = req.getParameter("username");
             if (username == null || username.trim().isEmpty()) {
@@ -60,10 +88,17 @@ public class FriendController extends HttpServlet {
                 return;
             }
 
-            // 서비스 호출
             GetFriendsListResDto resDto;
-            GetFriendsListReqDto reqDto = new GetFriendsListReqDto();
-            resDto = friendService.getFriendsList(reqDto);
+            GetFriendsListReqDto reqDto = new GetFriendsListReqDto(username);
+            try {
+                resDto = friendService.getFriendsList(reqDto);
+            } catch (Exception e) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                resp.setContentType("application/json; charset=UTF-8");
+                ErrorResponse err = new ErrorResponse("SERVER_ERROR", e.getMessage());
+                objectMapper.writeValue(resp.getWriter(), err);
+                return;
+            }
 
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.setContentType("application/json; charset=UTF-8");
@@ -71,7 +106,7 @@ public class FriendController extends HttpServlet {
             return;
         }
 
-        // 그 외 pathInfo는 처리하지 않음 → 404
+        // 그 외의 pathInfo는 404
         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
         resp.setContentType("application/json; charset=UTF-8");
         ErrorResponse err = new ErrorResponse("Not Found", "지원하지 않는 GET 경로입니다: " + path);
@@ -79,14 +114,14 @@ public class FriendController extends HttpServlet {
     }
 
     /**
-     * 친구 추가: POST /api/friends (body: JSON { "username":"hong123", "friendUsername":"kim456" })
+     * 친구 추가: POST /api/friends
+     * JSON 바디 형식: { "username": "...", "friendUsername": "..." }
      */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         System.out.println(">>> FriendController.doPost() 진입: pathInfo=" + req.getPathInfo());
 
-        // pathInfo가 null 또는 "/" 일 때만 친구 추가
         String path = req.getPathInfo();
         if (path == null || "/".equals(path)) {
             // 1) Content-Type 검사
@@ -120,9 +155,17 @@ public class FriendController extends HttpServlet {
                 return;
             }
 
-            // 4) 친구 추가 로직 호출
+            // 4) 친구 추가 서비스 호출
             AddFriendResDto responseDto;
-            responseDto = friendService.addFriend(requestDto);
+            try {
+                responseDto = friendService.addFriend(requestDto);
+            } catch (Exception e) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                resp.setContentType("application/json; charset=UTF-8");
+                ErrorResponse err = new ErrorResponse("SERVER_ERROR", e.getMessage());
+                objectMapper.writeValue(resp.getWriter(), err);
+                return;
+            }
 
             // 5) 성공 응답
             resp.setStatus(HttpServletResponse.SC_OK);
@@ -131,7 +174,7 @@ public class FriendController extends HttpServlet {
             return;
         }
 
-        // pathInfo가 그 외면 404
+        // 그 외의 pathInfo는 404
         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
         resp.setContentType("application/json; charset=UTF-8");
         ErrorResponse err = new ErrorResponse("Not Found", "지원하지 않는 POST 경로입니다: " + path);
@@ -139,7 +182,8 @@ public class FriendController extends HttpServlet {
     }
 
     /**
-     * 친구 삭제: DELETE /api/friends (body: JSON { "username":"hong123", "friendUsername":"kim456" })
+     * 친구 삭제: DELETE /api/friends
+     * JSON 바디 형식: { "username": "...", "friendUsername": "..." }
      */
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp)
@@ -158,7 +202,7 @@ public class FriendController extends HttpServlet {
                 return;
             }
 
-            // 2) JSON 파싱
+            // 2) JSON 바디 파싱
             RemoveFriendReqDto requestDto;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream(), "UTF-8"))) {
                 requestDto = objectMapper.readValue(reader, RemoveFriendReqDto.class);
@@ -179,9 +223,17 @@ public class FriendController extends HttpServlet {
                 return;
             }
 
-            // 4) 친구 삭제 로직 호출
+            // 4) 친구 삭제 서비스 호출
             RemoveFriendResDto responseDto;
-            responseDto = friendService.removeFriend(requestDto);
+            try {
+                responseDto = friendService.removeFriend(requestDto);
+            } catch (Exception e) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                resp.setContentType("application/json; charset=UTF-8");
+                ErrorResponse err = new ErrorResponse("SERVER_ERROR", e.getMessage());
+                objectMapper.writeValue(resp.getWriter(), err);
+                return;
+            }
 
             // 5) 성공 응답
             resp.setStatus(HttpServletResponse.SC_OK);
@@ -190,7 +242,7 @@ public class FriendController extends HttpServlet {
             return;
         }
 
-        // pathInfo 그 외는 404
+        // 그 외의 pathInfo는 404
         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
         resp.setContentType("application/json; charset=UTF-8");
         ErrorResponse err = new ErrorResponse("Not Found", "지원하지 않는 DELETE 경로입니다: " + path);

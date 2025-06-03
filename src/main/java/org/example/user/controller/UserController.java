@@ -4,6 +4,8 @@ package org.example.user.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,11 +54,11 @@ public class UserController extends HttpServlet {
         }
 
         // 2) HikariCP 설정
-        com.zaxxer.hikari.HikariConfig config = new com.zaxxer.hikari.HikariConfig();
+        HikariConfig config = new HikariConfig();
         config.setJdbcUrl(props.getProperty("jdbc.url"));
         config.setUsername(props.getProperty("jdbc.username"));
         config.setPassword(props.getProperty("jdbc.password"));
-        com.zaxxer.hikari.HikariDataSource ds = new com.zaxxer.hikari.HikariDataSource(config);
+        HikariDataSource ds = new HikariDataSource(config);
 
         // 3) DAO, Service, Jackson ObjectMapper 초기화
         UserDAO userDAO = new UserDAO(ds);
