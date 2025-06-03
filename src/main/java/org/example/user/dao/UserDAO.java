@@ -23,17 +23,17 @@ public class UserDAO {
     }
 
     /**
-     * user_id(로그인 ID) 중복 체크
+     * username로그인 ID) 중복 체크
      *
-     * @param userId 로그인 ID
+     * @param username 로그인 ID
      * @return 중복이면 true, 아니면 false
      * @throws SQLException
      */
-    public boolean existsByUserId(String userId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM user WHERE user_id = ?";
+    public boolean existsByUserId(String username) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM user WHERE username = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, userId);
+            pstmt.setString(1, username);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;
@@ -85,7 +85,7 @@ public class UserDAO {
      * @return 조회된 User 엔티티, 없으면 null
      * @throws SQLException
      */
-    public User findByUserId(String username) throws SQLException {
+    public User SignInUser(String username) throws SQLException {
         String sql = "SELECT id, name, username, password, status FROM user WHERE username = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {

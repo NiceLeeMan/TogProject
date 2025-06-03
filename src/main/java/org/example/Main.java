@@ -1,8 +1,10 @@
 package org.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.user.dto.SignUpReqDto;
-import org.example.user.dto.SignUpResDto;
+import org.example.friend.dto.AddFriendReqDto;
+import org.example.friend.dto.AddFriendResDto;
+import org.example.user.dto.SignInReqDto;
+import org.example.user.dto.SignInResDto;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -11,40 +13,81 @@ import java.nio.charset.StandardCharsets;
 
 public class Main {
 
-    private static final String BASE_URL = "http://localhost:8080/api/user";
+    private static final String BASE_USER_URL   = "http://localhost:8080/api/user";
+    private static final String BASE_FRIEND_URL = "http://localhost:8080/api/friends";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
         Main tester = new Main();
 
-        System.out.println("=== 1. 회원가입(SignUp) 테스트 ===");
-        SignUpReqDto signUpReq = new SignUpReqDto("홍길동", "hong123", "password123");
-        SignUpResDto signUpRes = tester.sendSignUp(signUpReq);
-        System.out.println(signUpRes);
-        System.out.println("SignUp 응답: " + tester.toJson(signUpRes));
+        // 3. 친구 추가 테스트 (hong123 → kim456)
+        // (사전에 kim456 계정이 반드시 회원가입되어 있어야 합니다.)
+        System.out.println("=== 3. 친구 추가(AddFriend) 테스트 ===");
+        AddFriendReqDto addReq = new AddFriendReqDto("hong123", "lee123");
+
+        System.out.println("addReq = " + addReq);
+        AddFriendResDto addRes = tester.sendAddFriend(addReq);
+
+        System.out.println("addRes = " + addRes);
+        System.out.println("AddFriend 응답: " + (addRes != null
+                ? tester.objectMapper.writeValueAsString(addRes)
+                : "친구 추가 실패 또는 응답이 null입니다"));
         System.out.println();
 
 
     }
 
-    private SignUpResDto sendSignUp(SignUpReqDto reqDto) throws IOException {
-        String targetUrl = BASE_URL + "/signup";
+
+    private SignInResDto sendSignIn(SignInReqDto reqDto) throws IOException {
+        String targetUrl = BASE_USER_URL + "/signin";
+
+        System.out.println("targetUrl: " + targetUrl);
+        System.out.println("sendSignIn() : 진입성공");
         String requestJson = objectMapper.writeValueAsString(reqDto);
 
         HttpURLConnection conn = createPostConnection(targetUrl, "application/json");
         writeRequestBody(conn, requestJson);
 
         int status = conn.getResponseCode();
+        System.out.println("status: " + status);
         if (status == HttpURLConnection.HTTP_OK) {
             String responseJson = readResponseBody(conn.getInputStream());
-            return objectMapper.readValue(responseJson, SignUpResDto.class);
+            System.out.println("responseJson: " + responseJson);
+            return objectMapper.readValue(responseJson, SignInResDto.class);
+        } else if (status == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            System.err.println("SignIn(401): 아이디 또는 비밀번호가 올바르지 않습니다.");
+            return null;
         } else {
-            System.out.println("status" + status);
             String errorJson = readResponseBody(conn.getErrorStream());
-            System.err.println("SignUp 오류(HTTP " + status + "): " + errorJson);
+            System.err.println("SignIn 오류(HTTP " + status + "): " + errorJson);
             return null;
         }
     }
+
+    // 3) 친구 추가(AddFriend) 호출
+    private AddFriendResDto sendAddFriend(AddFriendReqDto reqDto) throws IOException {
+        String targetUrl = BASE_FRIEND_URL;
+
+        System.out.println("targetUrl: " + targetUrl);
+        System.out.println("sendAddFriend() : 진입성공");
+        String requestJson = objectMapper.writeValueAsString(reqDto);
+
+        HttpURLConnection conn = createPostConnection(targetUrl, "application/json");
+        writeRequestBody(conn, requestJson);
+
+        int status = conn.getResponseCode();
+        System.out.println("status: " + status);
+        if (status == HttpURLConnection.HTTP_OK) {
+            String responseJson = readResponseBody(conn.getInputStream());
+            System.out.println("responseJson: " + responseJson);
+            return objectMapper.readValue(responseJson, AddFriendResDto.class);
+        } else {
+            String errorJson = readResponseBody(conn.getErrorStream());
+            System.err.println("AddFriend 오류(HTTP " + status + "): " + errorJson);
+            return null;
+        }
+    }
+
     private HttpURLConnection createPostConnection(String urlString, String contentType) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();

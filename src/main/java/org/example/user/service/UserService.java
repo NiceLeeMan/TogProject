@@ -80,7 +80,7 @@ public class UserService {
     public SignInResDto signIn(SignInReqDto reqDto) {
         try {
             // 1) 사용자 조회
-            User user = userDAO.findByUserId(reqDto.getUsername());
+            User user = userDAO.SignInUser(reqDto.getUsername());
             if (user == null) {
                 return null; // 사용자 없음
             }
@@ -114,7 +114,7 @@ public class UserService {
      */
     public boolean signOut(String username) {
         try {
-            User user = userDAO.findByUserId(username);
+            User user = userDAO.SignInUser(username);
             if (user == null) {
                 return false;
             }

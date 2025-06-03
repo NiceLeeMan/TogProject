@@ -24,7 +24,7 @@ public class FriendService {
 
     private final FriendDAO friendDAO;
 
-    public FriendService() {
+    public FriendService(FriendDAO friendDAO) {
         // DataSourceConfig에서 HikariCP DataSource를 가져와 DAO에 주입
         DataSource ds = DataSoruceConfig.getDataSource();
         this.friendDAO = new FriendDAO(ds);

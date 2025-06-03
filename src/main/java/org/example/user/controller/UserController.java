@@ -5,7 +5,6 @@ package org.example.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -67,7 +66,7 @@ public class UserController extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        System.out.println(">>> doPost() 호출됨");
+        System.out.println(">>> UserController.doPost() 진입: pathInfo=" + request.getPathInfo());
         // 요청 경로 추출: /signup, /signin, /signout
         String path = request.getPathInfo();
         response.setContentType("application/json; charset=UTF-8");
@@ -97,7 +96,7 @@ public class UserController extends HttpServlet {
      */
     private void handleSignUp(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        System.out.println(">>> handleSignUp() 호출됨");
+        System.out.println(">>> UserController.handleSignUp() 호출됨");
         SignUpReqDto reqDto = objectMapper.readValue(request.getInputStream(), SignUpReqDto.class);
         SignUpResDto resDto = userService.signUp(reqDto);
 

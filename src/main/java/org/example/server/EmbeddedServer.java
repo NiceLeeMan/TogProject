@@ -1,5 +1,6 @@
 package org.example.server;
 
+import org.example.friend.controller.FriendController;
 import org.example.user.controller.UserController;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -20,11 +21,14 @@ public class EmbeddedServer {
             // UserController 서블릿 매핑
             context.addServlet(UserController.class, "/api/user/*");
 
+            //friendController매핑
+            context.addServlet(FriendController.class, "/api/friends/*");
+
             // 서버 시작
             server.start();
             System.out.println("==== Embedded Jetty Server Started ====");
             System.out.println("-> http://localhost:" + port + "/api/user/*");
-
+            System.out.println("-> http://localhost:" + port + "/api/friends/*");
             // 종료까지 대기
             server.join();
         }
