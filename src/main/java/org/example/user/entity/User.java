@@ -8,8 +8,12 @@ import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 /**
- * user 테이블 엔티티
+ * user 테이블 매핑 엔티티
  *
  * CREATE TABLE `user` (
  *   `id` INT          NOT NULL AUTO_INCREMENT,
@@ -22,23 +26,20 @@ import java.util.List;
  * );
  *
  * ‼ 동작을 위해 DAO/Service에서 직접 관계 데이터를 채워 주어야 합니다.
- */
-
-/**
- * user 테이블 매핑 엔티티
  *
  * 관계 필드:
- * - friends       : 내가 “추가”한 친구들 (단방향)
- * - memos         : 내가 작성한 메모들 (owner 기준)
+ * - friends        : 내가 “추가”한 친구들 (단방향)
+ * - memos          : 내가 작성한 메모들 (owner 기준)
  * - chatRoomEntries: 내가 속한 채팅방 멤버십 엔트리들 (ChatRoomMember)
- * - messagesSent  : 내가 보낸 메시지들
+ * - messagesSent   : 내가 보낸 메시지들
  */
 public class User {
     private Long id;
     private String name;
     private String username;
     private String password;
-    private Boolean status; // true: 온라인, false: 오프라인
+    private Boolean status;            // true: 온라인, false: 오프라인
+    private String profileUrl;         // Optional 프로필 사진 URL
 
     /* ===== 관계 필드 ===== */
     // 1) User → List<User> : 내가 추가한 친구들 (단방향)
@@ -61,14 +62,22 @@ public class User {
         this.messagesSent = new ArrayList<>();
     }
 
-    // 전체 필드를 받는 생성자 (관계 필드는 외부에서 세팅해 주어도 되고, 빈 리스트로 두어도 무방)
-    public User(Long id, String name, String userId, String password, Boolean status) {
+    /**
+     * 전체 필드를 받는 생성자
+     * (관계 필드는 외부에서 세팅해 주어도 되고, 빈 리스트로 두어도 무방)
+     */
+    public User(Long id,
+                String name,
+                String username,
+                String password,
+                Boolean status,
+                String profileUrl) {
         this.id = id;
         this.name = name;
-        this.username = userId;
+        this.username = username;
         this.password = password;
         this.status = status;
-
+        this.profileUrl = profileUrl;
         this.friends = new ArrayList<>();
         this.memos = new ArrayList<>();
         this.chatRoomEntries = new ArrayList<>();
@@ -116,7 +125,19 @@ public class User {
         this.status = status;
     }
 
+    /**
+     * Optional 프로필 사진 URL
+     */
+    public String getProfileUrl() {
+        return profileUrl;
+    }
+
+    public void setProfileUrl(String profileUrl) {
+        this.profileUrl = profileUrl;
+    }
+
     /* ===== Getter / Setter (관계 필드) ===== */
+
     /**
      * 내가 “추가”한 친구 목록 (User 객체 리스트)
      */
@@ -140,7 +161,7 @@ public class User {
     }
 
     /**
-     * 내가 참여 중인 채팅방 멤버쉽 엔트리들 (ChatRoomMember 객체 리스트)
+     * 내가 참여 중인 채팅방 멤버십 엔트리들 (ChatRoomMember 객체 리스트)
      */
     public List<ChatRoomMember> getChatRoomEntries() {
         return chatRoomEntries;
@@ -161,6 +182,7 @@ public class User {
         this.messagesSent = messagesSent;
     }
 
+    /* ===== toString, equals, hashCode ===== */
     @Override
     public String toString() {
         return "User{" +
@@ -169,6 +191,7 @@ public class User {
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", status=" + status +
+                ", profileUrl='" + profileUrl + '\'' +
                 ", friendsCount=" + (friends != null ? friends.size() : 0) +
                 ", memosCount=" + (memos != null ? memos.size() : 0) +
                 ", chatRoomsCount=" + (chatRoomEntries != null ? chatRoomEntries.size() : 0) +

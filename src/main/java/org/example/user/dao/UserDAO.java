@@ -51,9 +51,12 @@ public class UserDAO {
      * @throws SQLException
      */
     public Long registerUser(User user) throws SQLException {
+        System.out.println(">>> UserDAO.insert() 호출됨: " + user.getUsername() + "/" + user.getName());
+
         String sql = "INSERT INTO user(name, username, password, status) VALUES (?, ?, ?, ?)";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(
+        Connection conn = dataSource.getConnection();
+        System.out.println(">>> DB 커넥션 획득 성공: " + conn.getMetaData().getURL());
+        try (PreparedStatement pstmt = conn.prepareStatement(
                      sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, user.getName());

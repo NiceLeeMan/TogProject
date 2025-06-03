@@ -21,17 +21,16 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Properties;
 
-/**
- * UserController: HTTP 요청을 처리하여 Service를 호출하고, JSON 응답을 반환하는 서블릿
- *
- * - /api/user/signup  : POST { "name": "...", "userId": "...", "password": "..." }
- * - /api/user/signin  : POST { "userId": "...", "password": "..." }
- * - /api/user/signout : POST { "userId": "..." }
- *
- * Jackson ObjectMapper를 사용해 JSON 직렬화/역직렬화 처리
- */
+///**
+// * UserController: HTTP 요청을 처리하여 Service를 호출하고, JSON 응답을 반환하는 서블릿
+// *
+// * - /api/user/signup  : POST { "name": "...", "userId": "...", "password": "..." }
+// * - /api/user/signin  : POST { "userId": "...", "password": "..." }
+// * - /api/user/signout : POST { "userId": "..." }
+// *
+// * Jackson ObjectMapper를 사용해 JSON 직렬화/역직렬화 처리
+// */
 
-@WebServlet(name = "UserController", urlPatterns = {"/api/user/*"})
 public class UserController extends HttpServlet {
 
     private UserService userService;
@@ -39,8 +38,9 @@ public class UserController extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-        super.init();
 
+        super.init();
+        System.out.println(">>> UserController.init() 호출됨");
         // 1) db.properties 파일을 Resource Stream으로 읽어오기
         Properties props = new Properties();
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
@@ -67,6 +67,7 @@ public class UserController extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        System.out.println(">>> doPost() 호출됨");
         // 요청 경로 추출: /signup, /signin, /signout
         String path = request.getPathInfo();
         response.setContentType("application/json; charset=UTF-8");
@@ -96,6 +97,7 @@ public class UserController extends HttpServlet {
      */
     private void handleSignUp(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        System.out.println(">>> handleSignUp() 호출됨");
         SignUpReqDto reqDto = objectMapper.readValue(request.getInputStream(), SignUpReqDto.class);
         SignUpResDto resDto = userService.signUp(reqDto);
 

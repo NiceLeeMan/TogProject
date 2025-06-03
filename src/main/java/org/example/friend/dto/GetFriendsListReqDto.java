@@ -3,6 +3,7 @@ package org.example.friend.dto;
 
 
 public class GetFriendsListReqDto {
+
     private String username;
 
     public GetFriendsListReqDto() { }

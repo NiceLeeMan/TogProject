@@ -37,6 +37,7 @@ public class UserService {
      * @return SignUpResDto
      */
     public SignUpResDto signUp(SignUpReqDto reqDto) {
+        System.out.println(">>> UserService.signUp() 시작: " + reqDto.getUsername());
         try {
             // 1) 중복 체크
             boolean exists = userDAO.existsByUserId(reqDto.getUsername());
@@ -93,7 +94,7 @@ public class UserService {
             userDAO.updateStatusById(user.getId(), true);
 
             // 4) 응답 DTO 생성
-            return new SignInResDto(user.getId(), user.getUsername(), user.getName());
+            return new SignInResDto(user.getId(), user.getUsername(), user.getName(), user.getProfileUrl());
 
         } catch (SQLException e) {
             e.printStackTrace();

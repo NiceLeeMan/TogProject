@@ -4,6 +4,7 @@ package org.example.user.dto;
 public class SignUpResDto {
     private String message;
 
+
     // 기본 생성자
     public SignUpResDto() { }
 
