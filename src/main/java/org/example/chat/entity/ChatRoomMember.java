@@ -18,6 +18,7 @@ public class ChatRoomMember {
     private Long roomId;
     private Long userId;
     private LocalDateTime joinedAt;
+    private LocalDateTime leftAt;
 
     // 기본 생성자
     public ChatRoomMember() { }
@@ -61,7 +62,12 @@ public class ChatRoomMember {
         this.joinedAt = joinedAt;
 
     }
-
+    public LocalDateTime getLeftAt() {
+        return leftAt;
+    }
+    public void setLeftAt(LocalDateTime leftAt) {
+        this.leftAt = leftAt;
+    }
     @Override
     public String toString() {
         return "ChatRoomMember{" +

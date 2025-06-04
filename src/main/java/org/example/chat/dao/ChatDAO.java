@@ -1,6 +1,8 @@
 package org.example.chat.dao;
 
 import org.example.chat.dto.MemberInfo;
+import org.example.chat.dto.OutChatRoomReqDto;
+import org.example.chat.dto.OutChatRoomResDto;
 import org.example.message.dto.MessageInfo;
 
 import java.sql.*;
@@ -36,7 +38,17 @@ public class ChatDAO {
             }
         }
     }
-
+    // 기존 메서드: 방 유형 조회
+    public String getRoomType(Long chatRoomId) throws SQLException {
+        String sql = "SELECT room_type FROM chat_room WHERE room_id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, chatRoomId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next() ? rs.getString("room_type") : null;
+            }
+        }
+    }
     /**
      * 1:1 채팅방 생성하기
      *
@@ -52,7 +64,9 @@ public class ChatDAO {
         String roomName = creatorUsername + "_" + friendUsername;
 
         // chat_room에 INSERT
-        String insertRoomSql = "INSERT INTO chat_room (roomname) VALUES (?)";
+        String insertRoomSql = ""
+                + "INSERT INTO chat_room (roomname, room_type) "
+                + "VALUES (?, 'ONE_TO_ONE')";
         Long newRoomId;
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertRoomSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -104,8 +118,9 @@ public class ChatDAO {
     public Long createGroupChat(String creatorUsername, String chatRoomName, List<String> memberUsernames) throws SQLException {
         Long creatorId = getUserIdByUsername(creatorUsername);
 
-        // chat_room에 INSERT
-        String insertRoomSql = "INSERT INTO chat_room (roomname) VALUES (?)";
+        String insertRoomSql = ""
+                + "INSERT INTO chat_room (roomname, room_type) "
+                + "VALUES (?, 'GROUP')";
         Long newRoomId;
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertRoomSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -133,15 +148,12 @@ public class ChatDAO {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertMemberSql)) {
 
+            // 1) 생성자 INSERT
             pstmt.setLong(1, newRoomId);
             pstmt.setLong(2, creatorId);
             pstmt.executeUpdate();
-        }
 
-        // chat_room_member에 memberUsernames 순회하며 INSERT
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(insertMemberSql)) {
-
+            // 2) 다른 멤버들 INSERT
             for (String memberUsername : memberUsernames) {
                 Long memberId = getUserIdByUsername(memberUsername);
                 pstmt.setLong(1, newRoomId);
@@ -149,7 +161,6 @@ public class ChatDAO {
                 pstmt.executeUpdate();
             }
         }
-
         return newRoomId;
     }
 
@@ -298,4 +309,131 @@ public class ChatDAO {
         }
         return messages;
     }
+
+
+    /**
+     * 사용자를 채팅방에서 나가게 처리합니다.
+     *
+     *  • 일대일(ONE_TO_ONE) 방: left_at = NOW() (soft‐delete)
+     *  • 그룹(GROUP) 방: chat_room_member 행을 삭제
+     */
+    public void leaveChatRoom(Long chatRoomId, String username) throws SQLException {
+        // 1) username → user_id 조회
+        Long userId = getUserIdByUsername(username);
+        if (userId == null) {
+            throw new SQLException("존재하지 않는 사용자: " + username);
+        }
+
+        // 2) 채팅방 유형 조회 (예: "ONE_TO_ONE" 또는 "GROUP")
+        String roomType = getRoomType(chatRoomId);
+        if (roomType == null) {
+            throw new SQLException("존재하지 않는 채팅방 ID: " + chatRoomId);
+        }
+
+        if ("ONE_TO_ONE".equals(roomType)) {
+            // ── 일대일 방: soft‐delete (left_at = NOW())
+            String sql = ""
+                    + "UPDATE chat_room_member "
+                    + "   SET left_at = NOW() "
+                    + " WHERE room_id = ? "
+                    + "   AND user_id = ? "
+                    + "   AND left_at IS NULL";
+
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setLong(1, chatRoomId);
+                pstmt.setLong(2, userId);
+                pstmt.executeUpdate();
+            }
+
+        } else {
+            // ── 그룹 방: 완전 삭제
+            String sql = "DELETE FROM chat_room_member WHERE room_id = ? AND user_id = ?";
+
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setLong(1, chatRoomId);
+                pstmt.setLong(2, userId);
+                pstmt.executeUpdate();
+            }
+        }
+    }
+    public OutChatRoomResDto leaveChatRoom(OutChatRoomReqDto reqDto) throws SQLException {
+        Long chatRoomId = reqDto.getChatRoomId();
+        String username = reqDto.getUsername();
+
+        // 1) username → user_id
+        Long userId = getUserIdByUsername(username);
+        if (userId == null) {
+            throw new SQLException("존재하지 않는 사용자: " + username);
+        }
+
+        // 2) 방 유형 조회
+        String roomType = getRoomType(chatRoomId);
+        if (roomType == null) {
+            throw new SQLException("존재하지 않는 채팅방 ID: " + chatRoomId);
+        }
+
+        if ("ONE_TO_ONE".equals(roomType)) {
+            // 일대일 방: soft‐delete (left_at = NOW())
+            String sql = ""
+                    + "UPDATE chat_room_member "
+                    + "   SET left_at = NOW() "
+                    + " WHERE room_id = ? AND user_id = ? AND left_at IS NULL";
+
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setLong(1, chatRoomId);
+                pstmt.setLong(2, userId);
+                pstmt.executeUpdate();
+            }
+        } else {
+            // 그룹 방: 행을 완전 삭제
+            String sql = "DELETE FROM chat_room_member WHERE room_id = ? AND user_id = ?";
+
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setLong(1, chatRoomId);
+                pstmt.setLong(2, userId);
+                pstmt.executeUpdate();
+            }
+        }
+        // 4) 나간 후에도 남아 있는 active 멤버 목록 조회 (엔티티→DTO 변환)
+        List<MemberInfo> remainingMembers = getActiveMembers(chatRoomId);
+        // 5) 응답 DTO 생성
+
+        OutChatRoomResDto res = new OutChatRoomResDto();
+        res.setChatRoomId(chatRoomId);
+        res.setUsername(username);
+        res.setLeftAt(LocalDateTime.now());
+        res.setMembers(remainingMembers);
+        return res;
+    }
+    public List<MemberInfo> getActiveMembers(Long chatRoomId) throws SQLException {
+        String sql = ""
+                + "SELECT u.user_id, u.username, u.display_name, u.profile_img_url "
+                + "  FROM users u "
+                + "  JOIN chat_room_member m ON u.user_id = m.user_id "
+                + " WHERE m.room_id = ? AND m.left_at IS NULL";
+
+        List<MemberInfo> list = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, chatRoomId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    MemberInfo mi = new MemberInfo();
+                    mi.setUserId(rs.getLong("user_id"));
+                    mi.setUsername(rs.getString("username"));
+                    mi.setName(rs.getString("name"));
+                    mi.setProfileImgUrl(rs.getString("profile_img_url"));
+                    list.add(mi);
+                }
+            }
+        }
+        return list;
+    }
+
 }

@@ -2,6 +2,7 @@ package org.example.memo.entity;
 
 
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -22,13 +23,13 @@ public class Memo {
     private Long ownerId;
     private Long friendId;
     private String content;
-    private LocalDateTime createdAt;
+    private LocalDate createdAt;
 
     // 기본 생성자
     public Memo() { }
 
     // 전체 필드를 받는 생성자
-    public Memo(Long memoId, Long ownerId, Long friendId, String content, LocalDateTime createdAt) {
+    public Memo(Long memoId, Long ownerId, Long friendId, String content, LocalDate createdAt) {
         this.memoId = memoId;
         this.ownerId = ownerId;
         this.friendId = friendId;
@@ -69,11 +70,11 @@ public class Memo {
         this.content = content;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public LocalDate getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(LocalDate createdAt) {
         this.createdAt = createdAt;
     }
 

@@ -23,26 +23,36 @@ public class UserDAO {
     }
 
     /**
-     * username로그인 ID) 중복 체크
+     * username(로그인 ID) 중복 체크
      *
      * @param username 로그인 ID
-     * @return 중복이면 true, 아니면 false
+     * @return 있으면 true, 없으면 false
      * @throws SQLException
      */
     public boolean existsByUserId(String username) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM user WHERE username = ?";
+        // findUserIdByUsername이 null이 아니면 “존재”로 간주
+        return findUserIdByUsername(username) != null;
+    }
+
+    /**
+     * username으로부터 user_id를 조회하여 반환합니다.
+     * 존재하지 않으면 null을 반환합니다.
+     */
+    public Long findUserIdByUsername(String username) throws SQLException {
+        String sql = "SELECT user_id FROM `user` WHERE username = ?";
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, username);
-            try (ResultSet rs = pstmt.executeQuery()) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt(1) > 0;
+                    return rs.getLong("user_id");
+                } else {
+                    return null;
                 }
-                return false;
             }
         }
     }
-
     /**
      * 새 User 레코드 INSERT
      *

@@ -96,4 +96,11 @@ public class ChatService {
             return new JoinChatResDto();
         }
     }
+
+    /**
+     * 수정: DAO가 반환하는 OutChatRoomResDto를 그대로 리턴
+     */
+    public OutChatRoomResDto leaveChatRoom(OutChatRoomReqDto reqDto) throws SQLException {
+        return chatDAO.leaveChatRoom(reqDto);
+    }
 }

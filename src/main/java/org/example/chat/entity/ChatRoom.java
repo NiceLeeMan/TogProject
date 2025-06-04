@@ -15,6 +15,7 @@ import java.util.Objects;
 public class ChatRoom {
     private Long roomId;
     private String roomName;
+    private String roomType;
     private LocalDateTime createTime;
 
     // 기본 생성자
@@ -49,7 +50,12 @@ public class ChatRoom {
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
-
+    public String getRoomType() {
+        return roomType;
+    }
+    public void setRoomType(String roomType) {
+        this.roomType = roomType;
+    }
     @Override
     public String toString() {
         return "ChatRoom{" +

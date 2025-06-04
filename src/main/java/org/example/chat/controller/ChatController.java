@@ -20,6 +20,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.util.Properties;
 
 /**
@@ -127,6 +128,29 @@ public class ChatController extends HttpServlet {
         JoinChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), JoinChatReqDto.class);
         // 서비스 호출
         JoinChatResDto resDto = chatService.joinChat(reqDto);
+        // 응답 JSON 쓰기
+        response.setStatus(HttpServletResponse.SC_OK);
+        try (PrintWriter out = response.getWriter()) {
+            objectMapper.writeValue(out, resDto);
+        }
+    }
+
+
+    private void handleLeaveChat(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // 요청 JSON → OutChatRoomReqDto
+        OutChatRoomReqDto reqDto = objectMapper.readValue(request.getInputStream(), OutChatRoomReqDto.class);
+        // 서비스 호출
+        OutChatRoomResDto resDto;
+        try {
+            resDto = chatService.leaveChatRoom(reqDto);
+        } catch (SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            try (PrintWriter out = response.getWriter()) {
+                objectMapper.writeValue(out, new ErrorResponse("DB_ERROR", e.getMessage()));
+            }
+            return;
+        }
+
         // 응답 JSON 쓰기
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {
