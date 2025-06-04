@@ -2,6 +2,7 @@ package org.example.chat.entity;
 
 
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 
@@ -16,6 +17,7 @@ public class ChatRoomMember {
     private Long id;
     private Long roomId;
     private Long userId;
+    private LocalDateTime joinedAt;
 
     // 기본 생성자
     public ChatRoomMember() { }
@@ -50,6 +52,14 @@ public class ChatRoomMember {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public LocalDateTime getJoinedAt() {
+        return joinedAt;
+    }
+    public void setJoinedAt(LocalDateTime joinedAt) {
+        this.joinedAt = joinedAt;
+
     }
 
     @Override

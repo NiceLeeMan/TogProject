@@ -3,6 +3,7 @@ package org.example.chat.entity;
 
 
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -14,6 +15,7 @@ import java.util.Objects;
 public class ChatRoom {
     private Long roomId;
     private String roomName;
+    private LocalDateTime createTime;
 
     // 기본 생성자
     public ChatRoom() { }
@@ -39,6 +41,13 @@ public class ChatRoom {
 
     public void setRoomName(String roomName) {
         this.roomName = roomName;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
     }
 
     @Override
