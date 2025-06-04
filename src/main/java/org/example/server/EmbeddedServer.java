@@ -1,5 +1,6 @@
 package org.example.server;
 
+import org.example.chat.controller.ChatController;
 import org.example.friend.controller.FriendController;
 import org.example.user.controller.UserController;
 import org.eclipse.jetty.server.Server;
@@ -18,17 +19,17 @@ public class EmbeddedServer {
             context.setContextPath("/");
             server.setHandler(context);
 
-            // UserController 서블릿 매핑
-            context.addServlet(UserController.class, "/api/user/*");
-
-            //friendController매핑
+            context.addServlet(UserController.class,   "/api/user/*");
             context.addServlet(FriendController.class, "/api/friends/*");
+            context.addServlet(ChatController.class,   "/api/chat/*");
+
 
             // 서버 시작
             server.start();
             System.out.println("==== Embedded Jetty Server Started ====");
             System.out.println("-> http://localhost:" + port + "/api/user/*");
             System.out.println("-> http://localhost:" + port + "/api/friends/*");
+            System.out.println("-> http://localhost:" + port + "/api/chat/*");
             // 종료까지 대기
             server.join();
         }

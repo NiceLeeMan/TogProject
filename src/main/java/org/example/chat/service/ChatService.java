@@ -23,49 +23,54 @@ public class ChatService {
     }
 
     /**
-     * 1) 1:1 채팅방 생성
+     * 1:1 채팅방 생성 + 바로 입장 정보 반환
      */
-    public CreateOneToOneChatResDto createOneToOneChat(CreateOneToOneChatReqDto req) {
+    public JoinChatResDto createAndJoinOneToOne(CreateOneToOneChatReqDto req) {
         try {
-            String creatorUsername = req.getUsername();
-            String friendUsername  = req.getFriendUsername();
+            // 1) 방 생성 (DB 상으로 생성자+대상 모두 MEMBER 테이블에 INSERT됨)
+            Long newRoomId = chatDAO.createOneToOneChat(
+                    req.getUsername(),
+                    req.getFriendUsername()
+            );
 
-            Long newRoomId = chatDAO.createOneToOneChat(creatorUsername, friendUsername);
+            // 2) 방 이름 조회
+            String roomName = chatDAO.findRoomNameById(newRoomId);
 
-            // 생성 직후 방에 속한 멤버 목록 조회
+            // 3) 멤버 정보 조회 (joinedAt 포함, 생성자는 이미 참여되어 있음)
             List<MemberInfo> members = chatDAO.getChatRoomMembers(newRoomId);
 
-            CreateOneToOneChatResDto res = new CreateOneToOneChatResDto(newRoomId);
-            res.setMembers(members);
-            res.setCreatedAt(LocalDateTime.now());
-            return res;
+            // 4) 메시지 내역 조회 (생성 직후라 메시지는 없겠지만, API 형태 통일)
+            List<MessageInfo> messages = chatDAO.getChatHistory(newRoomId, req.getUsername());
+
+            return new JoinChatResDto(newRoomId, roomName, members, messages);
         } catch (SQLException e) {
             e.printStackTrace();
-            return new CreateOneToOneChatResDto();
+            return new JoinChatResDto(); // 빈 DTO 리턴
         }
     }
 
     /**
-     * 2) 그룹 채팅방 생성
+     * 그룹 채팅방 생성 + 바로 입장 정보 반환
      */
-    public CreateGroupChatResDto createGroupChat(CreateGroupChatReqDto req) {
+    public JoinChatResDto createAndJoinGroup(CreateGroupChatReqDto req) {
         try {
-            String creatorUsername   = req.getUsername();
-            String chatRoomName      = req.getChatRoomName();
-            List<String> memberUsernames = req.getMembers()
-                    .stream()
-                    .map(MemberInfo::getUsername)
-                    .collect(Collectors.toList());
+            Long newRoomId = chatDAO.createGroupChat(
+                    req.getUsername(),
+                    req.getChatRoomName(),
+                    req.getMembers().stream()
+                            .map(MemberInfo::getUsername)
+                            .collect(Collectors.toList())
+            );
 
-            Long newRoomId = chatDAO.createGroupChat(creatorUsername, chatRoomName, memberUsernames);
-
+            String roomName = chatDAO.findRoomNameById(newRoomId);
             List<MemberInfo> members = chatDAO.getChatRoomMembers(newRoomId);
+            // 생성 직후이므로 메시지는 없겠지만, 구조적으로 가져오기
+            List<MessageInfo> messages = chatDAO.getChatHistory(newRoomId, req.getUsername());
 
-            CreateGroupChatResDto res = new CreateGroupChatResDto(newRoomId, chatRoomName, members, LocalDateTime.now());
-            return res;
+            return new JoinChatResDto(newRoomId, roomName, members, messages);
         } catch (SQLException e) {
             e.printStackTrace();
-            return new CreateGroupChatResDto();
+            return new JoinChatResDto();
         }
     }
 

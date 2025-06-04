@@ -2,6 +2,7 @@ package org.example.chat.dto;
 
 import org.example.message.dto.MessageInfo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class JoinChatResDto {
@@ -11,6 +12,8 @@ public class JoinChatResDto {
     private List<MemberInfo> members;
     // 해당 채팅방의 과거 채팅 내역 (MessageInfoDto 리스트)
     private List<MessageInfo> messages;
+    private LocalDateTime joinAt;
+
 
     public JoinChatResDto() { }
 
@@ -56,5 +59,12 @@ public class JoinChatResDto {
 
     public void setMessages(List<MessageInfo> messages) {
         this.messages = messages;
+    }
+
+    public LocalDateTime getJoinAt() {
+        return joinAt;
+    }
+    public void setJoinAt(LocalDateTime joinAt) {
+        this.joinAt = joinAt;
     }
 }

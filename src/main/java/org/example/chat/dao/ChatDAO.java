@@ -11,21 +11,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 
-// ChatDAO.java
 
-import org.example.chat.dto.MemberInfo;
-import javax.sql.DataSource;
-import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * ChatDAO
- *
- * • JDBC를 사용해 채팅 관련 CRUD 작업을 수행합니다.
- */
 public class ChatDAO {
 
     private final DataSource dataSource;
@@ -85,8 +71,12 @@ public class ChatDAO {
             }
         }
 
-        // chat_room_member에 creator, friend INSERT
-        String insertMemberSql = "INSERT INTO chat_room_member (room_id, user_id) VALUES (?, ?)";
+        // chat_room_member에 creator, friend INSERT (joined_at은 최초 삽입 시 한 번만 기록)
+        String insertMemberSql = ""
+                + "INSERT INTO chat_room_member (room_id, user_id, joined_at) "
+                + "VALUES (?, ?, NOW()) "
+                + "ON DUPLICATE KEY UPDATE room_id = room_id";
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertMemberSql)) {
 
@@ -134,8 +124,12 @@ public class ChatDAO {
             }
         }
 
-        // chat_room_member에 creator 먼저 INSERT
-        String insertMemberSql = "INSERT INTO chat_room_member (room_id, user_id) VALUES (?, ?)";
+        // chat_room_member에 creator 먼저 INSERT (joined_at은 최초 삽입 시 한 번만 기록)
+        String insertMemberSql = ""
+                + "INSERT INTO chat_room_member (room_id, user_id, joined_at) "
+                + "VALUES (?, ?, NOW()) "
+                + "ON DUPLICATE KEY UPDATE room_id = room_id";
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertMemberSql)) {
 
