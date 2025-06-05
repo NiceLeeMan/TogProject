@@ -118,28 +118,5 @@ public class UserService {
         }
     }
 
-    /**
-     * 로그아웃
-     *
-     * 1) userId로 User 조회
-     * 2) 사용자 존재하지 않으면 false
-     * 3) status = false로 바꾼 뒤 true 반환
-     *
-     * @param username 로그인 ID
-     * @return 로그아웃 성공 여부
-     */
-    public boolean signOut(String username) {
-        try {
-            User user = userDAO.SignInUser(username);
-            if (user == null) {
-                return false;
-            }
-            int updated = userDAO.updateStatusById(user.getId(), false);
-            return updated == 1;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 }
 

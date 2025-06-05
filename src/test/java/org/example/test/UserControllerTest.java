@@ -31,9 +31,9 @@ public class UserControllerTest {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // 테스트 도중 생성한 사용자 정보 저장용
-    private static String testUsername = "qwe123456";
-    private static String testPassword = "qwe@123456";
-    private static String testName     = "김덕민";
+    private static String testUsername = "qwe12345678";
+    private static String testPassword = "qwe@12345678";
+    private static String testName     = "김준호";
 
     private static Long createdUserId;
 

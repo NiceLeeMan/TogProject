@@ -136,37 +136,4 @@ public class UserDAO {
         }
     }
 
-
-    /**
-     * id(PK) 로 User 조회
-     *
-     * @param id PK
-     * @return 조회된 User 엔티티, 없으면 null
-     * @throws SQLException
-     */
-    public User findById(Long id) throws SQLException {
-        String sql = "SELECT id, name, username, password, status FROM user WHERE id = ?";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setLong(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (!rs.next()) {
-                    return null;
-                }
-                User user = new User();
-                user.setId(rs.getLong("id"));
-                user.setName(rs.getString("name"));
-                user.setUsername(rs.getString("username"));
-                user.setPassword(rs.getString("password"));
-                user.setStatus(rs.getBoolean("status"));
-                return user;
-            }
-        }
-    }
-
-
-
-
-
 }
