@@ -317,49 +317,6 @@ public class ChatDAO {
      *  • 일대일(ONE_TO_ONE) 방: left_at = NOW() (soft‐delete)
      *  • 그룹(GROUP) 방: chat_room_member 행을 삭제
      */
-    public void leaveChatRoom(Long chatRoomId, String username) throws SQLException {
-        // 1) username → user_id 조회
-        Long userId = getUserIdByUsername(username);
-        if (userId == null) {
-            throw new SQLException("존재하지 않는 사용자: " + username);
-        }
-
-        // 2) 채팅방 유형 조회 (예: "ONE_TO_ONE" 또는 "GROUP")
-        String roomType = getRoomType(chatRoomId);
-        if (roomType == null) {
-            throw new SQLException("존재하지 않는 채팅방 ID: " + chatRoomId);
-        }
-
-        if ("ONE_TO_ONE".equals(roomType)) {
-            // ── 일대일 방: soft‐delete (left_at = NOW())
-            String sql = ""
-                    + "UPDATE chat_room_member "
-                    + "   SET left_at = NOW() "
-                    + " WHERE room_id = ? "
-                    + "   AND user_id = ? "
-                    + "   AND left_at IS NULL";
-
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-                pstmt.setLong(1, chatRoomId);
-                pstmt.setLong(2, userId);
-                pstmt.executeUpdate();
-            }
-
-        } else {
-            // ── 그룹 방: 완전 삭제
-            String sql = "DELETE FROM chat_room_member WHERE room_id = ? AND user_id = ?";
-
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-                pstmt.setLong(1, chatRoomId);
-                pstmt.setLong(2, userId);
-                pstmt.executeUpdate();
-            }
-        }
-    }
     public OutChatRoomResDto leaveChatRoom(OutChatRoomReqDto reqDto) throws SQLException {
         Long chatRoomId = reqDto.getChatRoomId();
         String username = reqDto.getUsername();
