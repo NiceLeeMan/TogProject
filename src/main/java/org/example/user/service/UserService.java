@@ -101,6 +101,22 @@ public class UserService {
             return null;
         }
     }
+    // --- 새로 추가된 updateStatus 메서드 ---
+    /**
+     * DB 상의 status 컬럼을 직접 갱신한다.
+     * @param userId  갱신할 사용자 PK
+     * @param status  true = 온라인, false = 오프라인
+     * @return 업데이트 성공 시 true, 실패 혹은 예외 발생 시 false
+     */
+    public boolean updateStatus(Long userId, boolean status) {
+        try {
+            int updatedRows = userDAO.updateStatusById(userId, status);
+            return (updatedRows == 1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     /**
      * 로그아웃

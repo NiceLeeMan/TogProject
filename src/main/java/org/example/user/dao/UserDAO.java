@@ -39,14 +39,14 @@ public class UserDAO {
      * 존재하지 않으면 null을 반환합니다.
      */
     public Long findUserIdByUsername(String username) throws SQLException {
-        String sql = "SELECT user_id FROM `user` WHERE username = ?";
+        String sql = "SELECT id FROM `user` WHERE username = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getLong("user_id");
+                    return rs.getLong("id");
                 } else {
                     return null;
                 }
@@ -116,6 +116,27 @@ public class UserDAO {
         }
     }
 
+    // --- 새로 추가된 status 업데이트 메서드 ---
+    /**
+     * id 기준으로 status(true/false)만 바꿔줌 (로그인/로그아웃 처리용)
+     *
+     * @param id     User PK
+     * @param status true: 로그인, false: 로그아웃
+     * @return 업데이트된 행 개수
+     * @throws SQLException
+     */
+    public int updateStatusById(Long id, boolean status) throws SQLException {
+        String sql = "UPDATE user SET status = ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setBoolean(1, status);
+            pstmt.setLong(2, id);
+            return pstmt.executeUpdate();
+        }
+    }
+
+
     /**
      * id(PK) 로 User 조회
      *
@@ -144,40 +165,8 @@ public class UserDAO {
         }
     }
 
-    /**
-     * User 상태(status) 업데이트 (로그인 시 true, 로그아웃 시 false)
-     *
-     * @param id     PK
-     * @param status 변경할 상태값
-     * @return 업데이트된 행 개수 (정상 시 1)
-     * @throws SQLException
-     */
-    public int updateStatusById(Long id, boolean status) throws SQLException {
-        String sql = "UPDATE user SET status = ? WHERE id = ?";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setBoolean(1, status);
-            pstmt.setLong(2, id);
-            return pstmt.executeUpdate();
-        }
-    }
 
 
-    /**
-     * User 삭제 (관리용/테스트용)
-     *
-     * @param id 삭제할 사용자 PK
-     * @return 삭제된 행 개수
-     * @throws SQLException
-     */
-    public int deleteById(Long id) throws SQLException {
-        String sql = "DELETE FROM user WHERE id = ?";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setLong(1, id);
-            return pstmt.executeUpdate();
-        }
-    }
+
 }

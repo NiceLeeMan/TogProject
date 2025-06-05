@@ -17,6 +17,13 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.9.2</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- 2) MySQL Connector/J: 버전을 서버(8.0.42)에 맞춤 -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -70,4 +77,24 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Surefire 플러그인: JUnit 5를 실행하기 위해 필요 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+
+
 </project>

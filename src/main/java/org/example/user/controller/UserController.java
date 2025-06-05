@@ -10,11 +10,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.example.user.dao.UserDAO;
-import org.example.user.dto.SignInReqDto;
-import org.example.user.dto.SignInResDto;
-import org.example.user.dto.SignUpReqDto;
-import org.example.user.dto.SignUpResDto;
+import org.example.user.dto.*;
 import org.example.user.service.UserService;
 
 import java.io.IOException;
@@ -93,16 +91,31 @@ public class UserController extends HttpServlet {
     }
 
     /**
-     * 회원가입 처리 핸들러
-     * 요청 JSON → SignUpReqDto로 변환 → Service.signUp 호출 → SignUpResDto를 JSON으로 응답
+     * 회원가입 핸들러 (상태 코드 + ResDto 방식)
      */
     private void handleSignUp(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        System.out.println(">>> UserController.handleSignUp() 호출됨");
+        // 1) 요청 JSON → SignUpReqDto
         SignUpReqDto reqDto = objectMapper.readValue(request.getInputStream(), SignUpReqDto.class);
+
+        // 2) Service 호출
         SignUpResDto resDto = userService.signUp(reqDto);
 
-        response.setStatus(HttpServletResponse.SC_OK);
+        // 3) 상태 코드 분기
+        if (!resDto.isSuccess()) {
+            String msg = resDto.getMessage();
+            if (msg.contains("이미 존재")) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT); // 409
+            } else if (msg.contains("서버 오류")) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400
+            }
+        } else {
+            response.setStatus(HttpServletResponse.SC_CREATED); // 201
+        }
+
+        // 4) JSON 응답
         try (PrintWriter out = response.getWriter()) {
             out.write(objectMapper.writeValueAsString(resDto));
         }
@@ -125,46 +138,47 @@ public class UserController extends HttpServlet {
             return;
         }
 
+        HttpSession httpSession = request.getSession(true);
+        httpSession.setAttribute("loginUserId", resDto.getId());
+        httpSession.setAttribute("loginUsername", resDto.getUsername());
+        // (선택) DB status=true 로 변경
+        userService.updateStatus(resDto.getId(), true);
+
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {
             out.write(objectMapper.writeValueAsString(resDto));
         }
     }
 
-    /**
-     * 로그아웃 처리 핸들러
-     * 요청 JSON: { "userId": "hong123" }
-     * Service.signOut 호출 → 성공 여부에 따라 200 또는 400 응답
-     */
-    private void handleSignOut(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        @SuppressWarnings("unchecked")
-        java.util.Map<String, String> body = objectMapper.readValue(
-                request.getInputStream(),
-                java.util.Map.class
-        );
-        String userId = body.get("userId");
+    // ↳ UserController.java 에서 handleSignOut 부분만 발췌
 
-        if (userId == null || userId.trim().isEmpty()) {
+    private void handleSignOut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // 1) 세션 가져오기 (세션이 없으면 null)
+        HttpSession httpSession = request.getSession(false);
+
+        if (httpSession == null || httpSession.getAttribute("loginUserId") == null) {
+            // 이미 로그아웃된 상태이거나 세션이 없는 경우
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             try (PrintWriter out = response.getWriter()) {
-                out.write("{\"error\":\"userId가 필요합니다.\"}");
+                SignOutResDto dto = new SignOutResDto("로그인된 세션이 없습니다.");
+                objectMapper.writeValue(out, dto);
             }
             return;
         }
 
-        boolean ok = userService.signOut(userId);
-        if (!ok) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            try (PrintWriter out = response.getWriter()) {
-                out.write("{\"error\":\"로그아웃에 실패했습니다.(사용자 없음 또는 내부 오류)\"}");
-            }
-            return;
-        }
+        // 2) (선택) DB status=false 로 변경
+        Long userId = (Long) httpSession.getAttribute("loginUserId");
+        userService.updateStatus(userId, false);
 
+        // 3) 세션 무효화
+        httpSession.invalidate();
+
+        // 4) 성공 응답
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {
-            out.write("{\"message\":\"로그아웃 성공\"}");
+            SignOutResDto dto = new SignOutResDto("로그아웃 성공");
+            objectMapper.writeValue(out, dto);
         }
     }
+
 }
