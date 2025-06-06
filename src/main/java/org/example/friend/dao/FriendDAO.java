@@ -36,7 +36,8 @@ public class FriendDAO {
                 "SELECT u.id                 AS user_id, " +
                         "       u.username           AS username, " +
                         "       u.name               AS name, " +
-                        "       u.profile_img_url    AS profile_img_url " +
+                        "       u.profile_img_url    AS profile_img_url, " +
+                        "       u.status             AS status " +    // status 컬럼을 boolean로 읽어서 online 여부로 사용
                         "FROM user_friends uf " +
                         "JOIN user u ON uf.friend_id = u.id " +
                         "WHERE uf.user_id = ?";
@@ -54,12 +55,15 @@ public class FriendDAO {
                     String friendUsername= rs.getString("username");
                     String friendName    = rs.getString("name");
                     String profileUrl    = rs.getString("profile_img_url");
+                    boolean Online       = rs.getBoolean("status");
 
                     FriendInfo info = new FriendInfo(
                             friendId,
                             friendName,
                             friendUsername,
-                            profileUrl
+                            profileUrl,
+                            Online
+
                     );
                     friends.add(info);
                 }

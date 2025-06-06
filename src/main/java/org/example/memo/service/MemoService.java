@@ -54,7 +54,7 @@ public class MemoService {
 
             // 응답 DTO 생성
             PostMemoRes resDto = new PostMemoRes();
-            resDto.setMessage("메모 생성 성공");
+            resDto.setMessage("메모 저장 성공");
             resDto.setMemoId(saved.getMemoId());
             resDto.setCreatedDate(saved.getCreatedAt());
             return resDto;
@@ -65,7 +65,7 @@ public class MemoService {
 
             // 응답 DTO 생성
             PostMemoRes resDto = new PostMemoRes();
-            resDto.setMessage("메모 수정 성공");
+            resDto.setMessage("메모 저장 성공");
             resDto.setMemoId(existing.getMemoId());
             resDto.setCreatedDate(existing.getCreatedAt());
             return resDto;
@@ -108,28 +108,5 @@ public class MemoService {
         return resDto;
     }
 
-    /**
-     * 3) 특정 날짜 메모 삭제
-     *
-     * @param reqDto GetMemoReq(ownerUsername, friendUsername, createdDate)
-     * @return       삭제 성공 시 true, 없거나 오류 시 false
-     */
-    public boolean deleteMemo(GetMemoReq reqDto) throws SQLException {
-        // 1) username → user_id 조회
-        Long ownerId  = userDAO.findUserIdByUsername(reqDto.getOwnerUsername());
-        Long friendId = userDAO.findUserIdByUsername(reqDto.getFriendUsername());
 
-        if (ownerId == null || friendId == null) {
-            return false;
-        }
-
-        // 2) DTO → 엔티티 매핑 (삭제용)
-        Memo deleteMemo = new Memo();
-        deleteMemo.setOwnerId(ownerId);
-        deleteMemo.setFriendId(friendId);
-        deleteMemo.setCreatedAt(reqDto.getCreatedDate());
-
-        // 3) DAO 호출
-        return memoDAO.deleteMemo(deleteMemo);
-    }
 }

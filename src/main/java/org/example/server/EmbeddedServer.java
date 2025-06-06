@@ -2,6 +2,7 @@ package org.example.server;
 
 import org.example.chat.controller.ChatController;
 import org.example.friend.controller.FriendController;
+import org.example.memo.controller.MemoController;
 import org.example.user.controller.UserController;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -22,7 +23,7 @@ public class EmbeddedServer {
             context.addServlet(UserController.class,   "/api/user/*");
             context.addServlet(FriendController.class, "/api/friends/*");
             context.addServlet(ChatController.class,   "/api/chat/*");
-
+            context.addServlet(MemoController.class,   "/api/memo/*");
 
             // 서버 시작
             server.start();
@@ -30,6 +31,7 @@ public class EmbeddedServer {
             System.out.println("-> http://localhost:" + port + "/api/user/*");
             System.out.println("-> http://localhost:" + port + "/api/friends/*");
             System.out.println("-> http://localhost:" + port + "/api/chat/*");
+            System.out.println("-> http://localhost:" + port + "/api/memo/*");
             // 종료까지 대기
             server.join();
         }

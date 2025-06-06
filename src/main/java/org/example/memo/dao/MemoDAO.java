@@ -88,40 +88,5 @@ public class MemoDAO {
         }
     }
 
-    /**
-     * 4) DELETE (특정 날짜 메모 삭제)
-     *    → Memo 엔티티에서 ownerId, friendId, createdDate를 꺼내 사용.
-     */
-    public boolean deleteMemo(Memo memoReq) throws SQLException {
-        String sql = "DELETE FROM memo "
-                + "WHERE owner_id = ? AND friend_id = ? AND created_date = ?";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, memoReq.getOwnerId());
-            ps.setLong(2, memoReq.getFriendId());
-            ps.setDate(3, Date.valueOf(memoReq.getCreatedAt()));
 
-            int affected = ps.executeUpdate();
-            return affected > 0;
-        }
-    }
-
-    /**
-     * 5) MySQL Upsert 예시 (INSERT 혹은 UPDATE 한 줄로 처리)
-     *    → Memo 엔티티에서 ownerId, friendId, createdDate, content를 사용.
-     */
-    public void upsertMemo(Memo entity) throws SQLException {
-        String sql = ""
-                + "INSERT INTO memo (owner_id, friend_id, created_date, content) "
-                + "VALUES (?, ?, ?, ?) "
-                + "ON DUPLICATE KEY UPDATE content = VALUES(content)";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, entity.getOwnerId());
-            ps.setLong(2, entity.getFriendId());
-            ps.setDate(3, Date.valueOf(entity.getCreatedAt()));
-            ps.setString(4, entity.getContent());
-            ps.executeUpdate();
-        }
-    }
 }

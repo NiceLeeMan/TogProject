@@ -1,6 +1,8 @@
 package org.example.memo.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletException;
@@ -66,8 +68,11 @@ public class MemoController extends HttpServlet {
         // 3) DAO, Service, Jackson ObjectMapper 초기화
         UserDAO userDAO = new UserDAO(ds);
         MemoDAO memoDAO = new MemoDAO(ds);
+
         this.memoService = new MemoService(memoDAO, userDAO);
         this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Override
@@ -103,26 +108,6 @@ public class MemoController extends HttpServlet {
             } else {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 out.write("{\"error\":\"지원하지 않는 POST 경로입니다.\"}");
-            }
-        } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("{\"error\":\"서버 오류: " + e.getMessage() + "\"}");
-        }
-    }
-
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        System.out.println(">>> MemoController.doDelete() 진입: pathInfo=" + request.getPathInfo());
-        response.setContentType("application/json; charset=UTF-8");
-        response.setCharacterEncoding("UTF-8");
-
-        String path = request.getPathInfo(); // expected "/delete"
-        try (PrintWriter out = response.getWriter()) {
-            if ("/delete".equals(path)) {
-                handleDeleteMemo(request, response, out);
-            } else {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                out.write("{\"error\":\"지원하지 않는 DELETE 경로입니다.\"}");
             }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -183,6 +168,7 @@ public class MemoController extends HttpServlet {
             return;
         }
 
+
         PostMemoRes resDto;
         try {
             resDto = memoService.saveOrUpdateMemo(reqDto);
@@ -200,40 +186,5 @@ public class MemoController extends HttpServlet {
         out.write(objectMapper.writeValueAsString(resDto));
     }
 
-    /**
-     * DELETE /memo/delete?owner={ownerUsername}&friend={friendUsername}&date={yyyy-MM-dd}
-     */
-    private void handleDeleteMemo(HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws IOException {
-        String ownerUsername  = request.getParameter("owner");
-        String friendUsername = request.getParameter("friend");
-        String dateStr        = request.getParameter("date");
 
-        if (ownerUsername == null || friendUsername == null || dateStr == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.write("{\"error\":\"owner, friend, date 파라미터가 모두 필요합니다.\"}");
-            return;
-        }
-
-        GetMemoReq reqDto = new GetMemoReq();
-        reqDto.setOwnerUsername(ownerUsername);
-        reqDto.setFriendUsername(friendUsername);
-        reqDto.setCreatedDate(java.time.LocalDate.parse(dateStr));
-
-        boolean deleted;
-        try {
-            deleted = memoService.deleteMemo(reqDto);
-        } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.write("{\"error\":\"서버 오류: " + e.getMessage() + "\"}");
-            return;
-        }
-
-        if (deleted) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            out.write("{\"message\":\"메모 삭제 성공\"}");
-        } else {
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            out.write("{\"error\":\"해당 날짜의 메모가 없거나 삭제에 실패했습니다.\"}");
-        }
-    }
 }

@@ -7,15 +7,17 @@ public class FriendInfo {
     private String username;   // 필요하다면 응답에 username도 추가 가능
     private String name;
     private String profileImgUrl;
+    private boolean online;
 
 
     public FriendInfo() { }
 
-    public FriendInfo(Long userId, String name, String username, String profileImgUrl) {
+    public FriendInfo(Long userId, String name, String username, String profileImgUrl, boolean online) {
         this.userId = userId;
         this.name          = name;
         this.username      = username;
         this.profileImgUrl = profileImgUrl;
+        this.online        = online;
     }
 
     public Long getUserId() {
@@ -44,5 +46,12 @@ public class FriendInfo {
     }
     public void setProfileImgUrl(String profileImgUrl) {
         this.profileImgUrl = profileImgUrl;
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
+    public void setOnline(boolean online) {
+        this.online = online;
     }
 }
