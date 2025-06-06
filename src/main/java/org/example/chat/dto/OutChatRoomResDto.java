@@ -16,14 +16,16 @@ public class OutChatRoomResDto {
     private String username;
     private LocalDateTime leftAt;
     private List<MemberInfo> members;
+    private boolean deleted;  // 추가된 필드
 
     public OutChatRoomResDto() { }
 
-    public OutChatRoomResDto(Long chatRoomId, String username, LocalDateTime leftAt, List<MemberInfo> members) {
+    public OutChatRoomResDto(Long chatRoomId, String username, LocalDateTime leftAt, List<MemberInfo> members, boolean deleted) {
         this.chatRoomId = chatRoomId;
         this.username = username;
         this.leftAt = leftAt;
         this.members = members;
+        this.deleted = deleted;
     }
 
     public Long getChatRoomId() {
@@ -57,4 +59,14 @@ public class OutChatRoomResDto {
     public void setMembers(List<MemberInfo> members) {
         this.members = members;
     }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+
+
 }

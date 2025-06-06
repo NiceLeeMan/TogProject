@@ -1,8 +1,5 @@
 package org.example.chat.controller;
 
-// ChatController.java
-
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -15,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.chat.dao.ChatDAO;
 import org.example.chat.dto.*;
 import org.example.chat.service.ChatService;
+import org.example.message.dto.SendMessageReq;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -31,8 +29,9 @@ import java.util.Properties;
  *   POST /chat/one-to-one/create   → createOneToOneChat
  *   POST /chat/group/create        → createGroupChat
  *   POST /chat/join                → joinChat
+ *   POST /chat/leave               → leaveChat
+ *   POST /chat/send                → sendMessage (1:1 재가입용)
  */
-
 public class ChatController extends HttpServlet {
 
     private ChatService chatService;
@@ -85,6 +84,9 @@ public class ChatController extends HttpServlet {
                 case "/join":
                     handleJoinChat(request, response);
                     break;
+                case "/leave":
+                    handleLeaveChat(request, response);
+                    break;
                 default:
                     response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     try (PrintWriter out = response.getWriter()) {
@@ -135,7 +137,6 @@ public class ChatController extends HttpServlet {
         }
     }
 
-
     private void handleLeaveChat(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // 요청 JSON → OutChatRoomReqDto
         OutChatRoomReqDto reqDto = objectMapper.readValue(request.getInputStream(), OutChatRoomReqDto.class);
@@ -157,5 +158,7 @@ public class ChatController extends HttpServlet {
             objectMapper.writeValue(out, resDto);
         }
     }
+
+
 
 }

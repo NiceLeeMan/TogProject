@@ -16,8 +16,10 @@ import java.time.LocalDateTime;
  */
 
 public class SendMessageReq {
+
+    // 메시지를 보낼 채팅방 ID
+    private Long chatRoomId;
     private String senderUsername;  // 메시지 보낸 사람(username)
-    private Long chatRoomId;        // 메시지를 보낼 채팅방 ID
     private String content;         // 메시지 본문
     private LocalDateTime sentAt;   // (선택) 클라이언트에서 찍어 보낼 수 있는 전송 시각
 
