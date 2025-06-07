@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * 반드시 테스트를 실행하기 전에 Jetty 서버(EmbeddedServer)가 기동 중이어야 합니다.
  */
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ChatControllerTest {
 
@@ -48,12 +50,12 @@ public class ChatControllerTest {
     private static final String userE = "qwe1234567";      // 정태우
 
     private static java.net.CookieManager cookieManager;
-    private static Long oneToOneRoomId;
-    private static Long groupRoomId;
+    private static Long oneToOneRoomId = 1L;
+    private static  Long groupRoomId = 2L;
 
     @BeforeAll
-    static void setUp() {
-        // CookieManager 설정 (로그인은 필요 없으므로 생략)
+    static void setUp() throws Exception {
+        // 1) CookieManager 설정 (로그인 세션 유지용)
         cookieManager = new java.net.CookieManager();
         java.net.CookieHandler.setDefault(cookieManager);
     }
@@ -80,12 +82,18 @@ public class ChatControllerTest {
         assertTrue(root.has("messages"), "응답에 'messages' 필드가 있어야 합니다.");
 
         oneToOneRoomId = root.get("chatRoomId").asLong();
+
+        System.out.println(oneToOneRoomId);
+
         JsonNode members = root.get("members");
         assertTrue(members.isArray(), "'members'는 배열이어야 합니다.");
         assertEquals(2, members.size(), "1:1 방 생성 후 멤버 수는 2여야 합니다.");
+
         JsonNode messages = root.get("messages");
         assertTrue(messages.isArray(), "'messages'는 배열이어야 합니다.");
         assertEquals(0, messages.size(), "생성 직후 메시지 내역은 비어 있어야 합니다.");
+
+        System.out.println(res.statusCode + " / " + res.body);
     }
 
     /**
@@ -96,12 +104,12 @@ public class ChatControllerTest {
     void testCreateGroupChat() throws Exception {
         Map<String, Object> payload = new HashMap<>();
         payload.put("username", userA);
-        payload.put("chatRoomName", "GroupRoom1");
+        payload.put("chatRoomName", "GroupRoom2");
 
         List<Map<String, String>> members = new ArrayList<>();
         members.add(Map.of("username", userB));
         members.add(Map.of("username", userC));
-        members.add(Map.of("username", userD));
+        members.add(Map.of("username", userE));
         payload.put("members", members);
 
         HttpResponse res = sendPostRequest(BASE_URL_CHAT + "/group/create",
@@ -116,6 +124,8 @@ public class ChatControllerTest {
         assertTrue(root.has("messages"), "응답에 'messages' 필드가 있어야 합니다.");
 
         groupRoomId = root.get("chatRoomId").asLong();
+        System.out.println(groupRoomId);
+
         JsonNode membersNode = root.get("members");
         assertTrue(membersNode.isArray(), "'members'는 배열이어야 합니다.");
         // 총 4명 (A, B, C, D)
@@ -124,17 +134,43 @@ public class ChatControllerTest {
         assertTrue(messages.isArray(), "'messages'는 배열이어야 합니다.");
         assertEquals(0, messages.size(), "생성 직후 메시지 내역은 비어 있어야 합니다.");
     }
+    @Test
+    @Order(6)
+    void testJoinExistingChat() throws Exception {
 
-    /**
-     * 3. 1:1 채팅방 나가기 (B가 나감)
-     */
+        // — 1:1 채팅방 입장 —
+        System.out.println("▶ before join roomId = " + oneToOneRoomId);
+
+            Map<String, Object> req = new HashMap<>();
+            req.put("chatRoomId", oneToOneRoomId);
+            req.put("username", userA);
+
+            System.out.println(req);
+
+            HttpResponse res = sendPostRequest(BASE_URL_CHAT + "/join",
+                    objectMapper.writeValueAsString(req));
+            System.out.println(res.body);
+
+            assertEquals(200, res.statusCode);
+
+            JsonNode root = objectMapper.readTree(res.body);
+            assertTrue(root.get("members").isArray(), "'members' should be array for 1:1");
+            assertEquals(2, root.get("members").size(), "1:1 방 멤버 수는 2");
+            assertTrue(root.get("messages").isArray(), "'messages' should be array");
+
+    }
+        /**
+         * 3. 1:1 채팅방 나가기 (B가 나감)
+         */
     @Test
     @Order(3)
     void testLeaveOneToOneChat() throws Exception {
+
         Map<String, Object> payload = new HashMap<>();
         payload.put("chatRoomId", oneToOneRoomId);
         payload.put("username", userB);
 
+        System.out.println(payload);
         HttpResponse res = sendPostRequest(BASE_URL_CHAT + "/leave",
                 objectMapper.writeValueAsString(payload));
 
@@ -151,6 +187,8 @@ public class ChatControllerTest {
         assertTrue(members.isArray(), "'members'는 배열이어야 합니다.");
         assertEquals(1, members.size(), "B가 나간 뒤 남은 멤버 수는 1이어야 합니다.");
         assertFalse(root.get("deleted").asBoolean(), "'deleted'는 false여야 합니다.");
+
+        System.out.println(res.statusCode + " / " + res.body);
     }
 
     /**
@@ -161,13 +199,18 @@ public class ChatControllerTest {
     @Test
     @Order(4)
     void testLeaveGroupChat() throws Exception {
+
         // 4-1) C가 나가기
         Map<String, Object> payloadC = new HashMap<>();
         payloadC.put("chatRoomId", groupRoomId);
         payloadC.put("username", userC);
 
+        System.out.println("payloadC" + payloadC);
+
         HttpResponse resC = sendPostRequest(BASE_URL_CHAT + "/leave",
                 objectMapper.writeValueAsString(payloadC));
+
+        System.out.println("resC"+resC.body +"/" + resC.statusCode);
 
         assertEquals(200, resC.statusCode, "그룹방 개별 나가기 시 HTTP 상태 코드는 200이어야 합니다.");
 
@@ -175,12 +218,17 @@ public class ChatControllerTest {
         assertTrue(rootC.has("members"), "응답에 'members' 필드가 있어야 합니다.");
         JsonNode membersC = rootC.get("members");
         assertTrue(membersC.isArray(), "'members'는 배열이어야 합니다.");
+
         assertEquals(3, membersC.size(), "C가 나간 뒤 남은 멤버 수는 3이어야 합니다.");
+
         assertFalse(rootC.get("deleted").asBoolean(), "'deleted'는 false여야 합니다.");
 
         // 4-2) 나머지 멤버 A, B, D 순서로 모두 나가기
-        List<String> leaveOrder = List.of(userA, userB, userD);
+        List<String> leaveOrder = List.of(userA, userB, userE);
+
         for (int i = 0; i < leaveOrder.size(); i++) {
+            System.out.println(leaveOrder.get(i));
+
             String username = leaveOrder.get(i);
             Map<String, Object> payload = new HashMap<>();
             payload.put("chatRoomId", groupRoomId);

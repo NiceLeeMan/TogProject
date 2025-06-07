@@ -34,6 +34,26 @@ public class ChatDAO {
             }
         }
     }
+    /**
+     * username으로 조회해서 해당 사용자의 name을 반환합니다.
+     *
+     * @param username 조회할 사용자의 username
+     * @return 해당 사용자의 name
+     * @throws SQLException 사용자가 없거나 DB 오류가 발생한 경우
+     */
+    public String getNameByUsername(String username) throws SQLException {
+        String sql = "SELECT name FROM user WHERE username = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("name");
+                }
+                throw new SQLException("해당 username을 가진 사용자가 없습니다: " + username);
+            }
+        }
+    }
 
     /**
      * 헬퍼: room_id → room_type 조회 (ONE_TO_ONE or GROUP)
@@ -64,7 +84,12 @@ public class ChatDAO {
         Long creatorId = getUserIdByUsername(creatorUsername);
         Long friendId  = getUserIdByUsername(friendUsername);
 
-        String roomName = creatorUsername + "_" + friendUsername;
+        String creatorName = getNameByUsername(creatorUsername);
+        String friendName  = getNameByUsername(friendUsername);
+
+
+        // 3) 방 이름을 실제 이름(name)으로 구성
+        String roomName = creatorName + "&" + friendName +" 채팅방";
 
         // 1) chat_room에 INSERT
         String insertRoomSql = ""

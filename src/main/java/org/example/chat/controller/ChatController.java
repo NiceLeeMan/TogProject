@@ -21,6 +21,8 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static java.lang.System.out;
+
 /**
  * ChatController
  *
@@ -125,11 +127,25 @@ public class ChatController extends HttpServlet {
         }
     }
 
-    private void handleJoinChat(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private void handleJoinChat(HttpServletRequest request, HttpServletResponse response) throws IOException, SQLException {
         // 요청 JSON → JoinChatReqDto
         JoinChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), JoinChatReqDto.class);
+
+
+        // 2) 입력 검증: chatRoomId, username 둘 다 필수
+        if (reqDto.getChatRoomId() == null || reqDto.getUsername() == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            try (PrintWriter out = response.getWriter()) {
+                objectMapper.writeValue(out, new ErrorResponse(
+                        "INVALID_REQUEST",
+                        "chatRoomId and username are required"
+                ));
+            }
+            return;
+        }
         // 서비스 호출
         JoinChatResDto resDto = chatService.joinChat(reqDto);
+
         // 응답 JSON 쓰기
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {

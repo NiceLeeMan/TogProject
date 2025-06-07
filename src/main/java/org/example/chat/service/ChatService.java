@@ -98,7 +98,16 @@ public class ChatService {
     /**
      * 채팅방 입장 (클릭해서 방 들어가기) — 단순히 조회만 수행
      */
-    public JoinChatResDto joinChat(JoinChatReqDto req) {
+    public JoinChatResDto joinChat(JoinChatReqDto req) throws SQLException {
+
+
+        if (req.getChatRoomId() == null) {
+            throw new SQLException("chatRoomId must not be null");
+        }
+        if (req.getUsername() == null) {
+            throw new SQLException("username must not be null");
+        }
+
         try {
             Long chatRoomId = req.getChatRoomId();
             String username = req.getUsername();
