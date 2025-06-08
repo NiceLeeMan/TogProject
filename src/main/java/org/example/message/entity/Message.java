@@ -1,16 +1,11 @@
 package org.example.message.entity;
 
 
-import org.example.chat.entity.ChatRoom;
-import org.example.user.entity.User;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 // Message.java
 
-import java.time.LocalDateTime;
-import java.util.Objects;
 
 /**
  * message 테이블 매핑 엔티티

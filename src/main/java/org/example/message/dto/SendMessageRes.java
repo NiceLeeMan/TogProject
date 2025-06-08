@@ -1,6 +1,8 @@
 package org.example.message.dto;
 
 
+import org.example.message.entity.Message;
+
 import java.time.LocalDateTime;
 
 /**
@@ -17,19 +19,27 @@ import java.time.LocalDateTime;
  */
 
 public class SendMessageRes {
-    private Long messageId;         // DB에 저장된 메시지의 고유 ID
+    private Long msgId;         // DB에 저장된 메시지의 고유 ID
     private Long chatRoomId;        // 같은 채팅방 ID
-    private String senderUsername;  // 보낸 사람(username)
-    private String content;         // 메시지 본문
+    private Long senderId;  // 보낸 사람(username)
+    private String contents;         // 메시지 본문
     private LocalDateTime createdAt; // DB에서 저장된 시각
 
     public SendMessageRes() {}
 
-    public Long getMessageId() {
-        return messageId;
+    public SendMessageRes(Message m) {
+        this.msgId = m.getMsgId();
+        this.chatRoomId     = m.getRoomId();
+        this.senderId = senderId;
+        this.contents = m.getContents();
+        this.createdAt      = m.getCreatedAt();
     }
-    public void setMessageId(Long messageId) {
-        this.messageId = messageId;
+
+    public Long getMsgId() {
+        return msgId;
+    }
+    public void setMsgId(Long msgId) {
+        this.msgId = msgId;
     }
 
     public Long getChatRoomId() {
@@ -39,18 +49,18 @@ public class SendMessageRes {
         this.chatRoomId = chatRoomId;
     }
 
-    public String getSenderUsername() {
-        return senderUsername;
+    public Long getSenderId() {
+        return senderId;
     }
-    public void setSenderUsername(String senderUsername) {
-        this.senderUsername = senderUsername;
+    public void setSenderId(Long senderId) {
+        this.senderId = senderId;
     }
 
-    public String getContent() {
-        return content;
+    public String getContents() {
+        return contents;
     }
-    public void setContent(String content) {
-        this.content = content;
+    public void setContents(String contents) {
+        this.contents = contents;
     }
 
     public LocalDateTime getCreatedAt() {

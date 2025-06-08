@@ -106,8 +106,13 @@ public class UserControllerTest {
         // 3) 상태 코드 확인 (200 OK)
         assertEquals(200, res.statusCode, "로그인 시 HTTP 상태 코드는 200이어야 합니다.");
 
+        System.out.println("로그인 상태 코드: " + res.statusCode);
+        System.out.println("로그인 응답 바디: " + res.body);
+
         // 4) 응답 바디 JSON 파싱
         JsonNode root = objectMapper.readTree(res.body);
+
+        System.out.println("JsonNode_root: " + root);
 
         // 필수 필드: id, username, name, profileUrl (profileUrl은 null 혹은 빈 문자열일 수 있음)
         assertTrue(root.has("id"), "로그인 응답에 'id' 필드가 있어야 합니다.");
@@ -164,6 +169,8 @@ public class UserControllerTest {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
+
+        System.out.println("conn : " +conn.getURL());
 
         // JSON 바디를 주는 경우
         if (jsonBody != null) {

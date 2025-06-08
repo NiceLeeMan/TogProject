@@ -18,38 +18,31 @@ import java.time.LocalDateTime;
 public class SendMessageReq {
 
     // 메시지를 보낼 채팅방 ID
-    private Long chatRoomId;
-    private String senderUsername;  // 메시지 보낸 사람(username)
-    private String content;         // 메시지 본문
-    private LocalDateTime sentAt;   // (선택) 클라이언트에서 찍어 보낼 수 있는 전송 시각
+    private Long roomId;
+    private Long senderId;  // 메시지 보낸 사람(username)
+    private String contents;         // 메시지 본문// (선택) 클라이언트에서 찍어 보낼 수 있는 전송 시각
 
     public SendMessageReq() {}
 
-    public String getSenderUsername() {
-        return senderUsername;
+    public Long getSenderId() {
+        return senderId;
     }
-    public void setSenderUsername(String senderUsername) {
-        this.senderUsername = senderUsername;
-    }
-
-    public Long getChatRoomId() {
-        return chatRoomId;
-    }
-    public void setChatRoomId(Long chatRoomId) {
-        this.chatRoomId = chatRoomId;
+    public void setSenderId(Long senderId) {
+        this.senderId = senderId;
     }
 
-    public String getContent() {
-        return content;
+    public Long getRoomId() {
+        return roomId;
     }
-    public void setContent(String content) {
-        this.content = content;
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 
-    public LocalDateTime getSentAt() {
-        return sentAt;
+    public String getContents() {
+        return contents;
     }
-    public void setSentAt(LocalDateTime sentAt) {
-        this.sentAt = sentAt;
+    public void setContents(String contents) {
+        this.contents = contents;
     }
+
 }
