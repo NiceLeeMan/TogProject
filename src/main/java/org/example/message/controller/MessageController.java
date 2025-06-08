@@ -9,13 +9,12 @@ import org.example.chat.dao.ChatDAO;
 import org.example.chat.service.ChatService;
 import org.example.config.DataSoruceConfig;
 import org.example.message.dao.MessageDAO;
-import org.example.message.dto.SendMessageReq;
-import org.example.message.dto.SendMessageRes;
+import org.example.message.dto.*;
 import org.example.message.service.MessageService;
-
-import javax.websocket.*;
-import javax.websocket.server.PathParam;
-import javax.websocket.server.ServerEndpoint;
+import jakarta.websocket.*;
+import jakarta.websocket.Session;                       // ← 반드시 jakarta.websocket.Session
+import jakarta.websocket.server.PathParam;
+import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -45,7 +44,10 @@ public class MessageController {
 
     private final MessageService messageService; // 외부에서 주입
 
-
+    // 1) 모킹·단위 테스트용 생성자 (테스트 코드에서 이걸 호출)
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
 
     public MessageController() {
 

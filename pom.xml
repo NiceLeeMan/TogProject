@@ -24,6 +24,49 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.4.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito JUnit Jupiter 통합 (JUnit 5 어노테이션 지원) -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.4.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>5.2.0</version>  <!-- 5.5.0 이상으로 올려 보세요 -->
+            <scope>test</scope>
+        </dependency>
+
+        <!-- 명시적으로 최신 Byte-Buddy 추가 -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.17.5</version>  <!-- Java 23 지원 버전 -->
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>1.17.5</version>   <!-- byte-buddy 버전에 맞춰 주세요 -->
+            <scope>compile</scope>
+        </dependency>
+
+
+
+
+
+
+
         <!-- 2) MySQL Connector/J: 버전을 서버(8.0.42)에 맞춤 -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -39,13 +82,6 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.websocket</groupId>
-            <artifactId>javax.websocket-api</artifactId>
-            <version>1.1</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.15.2</version>
@@ -58,10 +94,12 @@
             <version>5.0.1</version>
         </dependency>
 
+        <!-- servlet API는 provided로 둡니다 -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -74,6 +112,22 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
             <version>11.0.15</version>
+        </dependency>
+
+
+        <!-- 1) JSR-356 API: 런타임에도 필요하니 provided → compile -->
+        <dependency>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-api</artifactId>
+            <version>2.1.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-jakarta-server</artifactId>
+            <version>11.0.15</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>
