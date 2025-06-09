@@ -30,6 +30,7 @@ public class EmbeddedServer {
         String friendsPath = props.getProperty("servlet.friends");
         String chatPath    = props.getProperty("servlet.chat");
         String memoPath    = props.getProperty("servlet.memo");
+        String messagePath= props.getProperty("servlet.messages");  // 새로 추가
         String wsPath      = props.getProperty("ws.path");
 
         // 3) Jetty 서버 및 컨텍스트 설정

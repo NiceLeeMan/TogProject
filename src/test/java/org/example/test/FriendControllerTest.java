@@ -39,8 +39,8 @@ public class FriendControllerTest {
     private static final String testUser1 = "testUser_1";
     private static final String testPass1 = "pw@1001";
 
-    private static final long testUser2Id = 21L;
-    private static final String testUser2 = "testUser_3";
+    private static final long testUser2Id = 26L;
+    private static final String testUser2 = "testUser_8";
 
 
     // 전역 CookieManager: 로그인 세션 쿠키(JSESSIONID 등)를 유지하도록 함
@@ -68,10 +68,13 @@ public class FriendControllerTest {
         payload.put("username", testUser1);
         payload.put("friendUsername", testUser2);
 
+
         HttpResponse res = sendPost(
                 BASE_URL + FRIENDS_PATH,
                 objectMapper.writeValueAsString(payload)
         );
+
+        System.out.println("[testAddFriend] Response Body: " + res.body);
         assertEquals(200, res.statusCode, "POST 실패");
 
         JsonNode root = objectMapper.readTree(res.body);
@@ -94,11 +97,14 @@ public class FriendControllerTest {
     @Test
     @Order(2)
     void testGetFriendsList() throws Exception {
+
         String url = String.format(
                 "%s%s?username=%s",
                 BASE_URL, FRIENDS_PATH, testUser1
         );
+
         HttpResponse res = sendGet(url);
+        System.out.println("[testGetFriendsList] Response Body: " + res.body);
         assertEquals(200, res.statusCode);
 
         JsonNode root = objectMapper.readTree(res.body);
@@ -134,6 +140,7 @@ public class FriendControllerTest {
                 BASE_URL + FRIENDS_PATH,
                 objectMapper.writeValueAsString(payload)
         );
+        System.out.println("[testRemoveFriend] Response Body: " + res.body);
         assertEquals(200, res.statusCode);
 
         JsonNode root = objectMapper.readTree(res.body);

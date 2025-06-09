@@ -6,6 +6,8 @@ public class MessageInfo {
     // 메시지 고유 ID (message.msg_id)
     private Long msgId;
 
+    private Long roomId;
+
     // 메시지를 보낸 사용자 ID (message.sender_id)
     private Long senderId;
 
@@ -21,12 +23,13 @@ public class MessageInfo {
 
     public MessageInfo() { }
 
-    public MessageInfo(Long msgId, Long senderId, String senderUsername, String contents, LocalDateTime createdAt) {
+    public MessageInfo(Long msgId, Long senderId, String senderUsername, String contents, LocalDateTime createdAt ,Long roomId) {
         this.msgId = msgId;
         this.senderId = senderId;
         this.senderUsername = senderUsername;
         this.contents = contents;
         this.createdAt = createdAt;
+        this.roomId = roomId;
     }
 
     public Long getMsgId() {
@@ -67,5 +70,13 @@ public class MessageInfo {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getRoomId() {
+        return roomId;
+
+    }
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 }

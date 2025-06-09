@@ -329,29 +329,40 @@ public class ChatDAO {
         return messages;
     }
 
+
+
     /**
-     * 1:1 채팅방: 해당 사용자가 활성 멤버인지 확인
-     *
-     * @param chatRoomId 방 ID
-     * @param userId     사용자 ID
-     * @return 활성 멤버이면 true, 아니면 false
-     * @throws SQLException
+     * 채팅방 존재 여부 확인
+     * @param roomId PK 값
+     * @return true if exists
      */
-    public boolean isActiveMember(Long chatRoomId, Long userId) throws SQLException {
-        String sql = "SELECT COUNT(*) AS cnt "
-                + "  FROM chat_room_member "
-                + " WHERE room_id = ? AND user_id = ? AND left_at IS NULL";
+    public boolean existsById(Long roomId) throws SQLException {
+        String sql = "SELECT 1 FROM chat_room WHERE room_id = ?";
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, chatRoomId);
-            pstmt.setLong(2, userId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("cnt") > 0;
-                }
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, roomId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();  // 한 행이라도 있으면 true
             }
         }
-        return false;
+    }
+
+    /**
+     * 사용자가 해당 채팅방의 활성(가입) 멤버인지 확인
+     * @param roomId 채팅방 PK
+     * @param userId 사용자 PK
+     * @return true if userId가 roomId에 JOIN 상태로 존재
+     */
+    public boolean isMemberInRoom(Long roomId, Long userId) throws SQLException {
+        String sql = "SELECT 1 FROM chat_room_member WHERE room_id = ? AND user_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, roomId);
+            ps.setLong(2, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
     }
 
     /**
@@ -406,26 +417,6 @@ public class ChatDAO {
         }
     }
 
-    /**
-     * 메시지 저장 (INSERT)
-     *
-     * @param chatRoomId 방 ID
-     * @param senderId   보낸 사람 ID
-     * @param contents   메시지 내용
-     * @throws SQLException
-     */
-    public void insertMessage(Long chatRoomId, Long senderId, String contents) throws SQLException {
-        String sql = ""
-                + "INSERT INTO message (room_id, sender_id, contents, created_at) "
-                + "VALUES (?, ?, ?, NOW())";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, chatRoomId);
-            pstmt.setLong(2, senderId);
-            pstmt.setString(3, contents);
-            pstmt.executeUpdate();
-        }
-    }
 
     /**
      * 사용자를 채팅방에서 나가게 처리 (ONE_TO_ONE: soft‐delete / GROUP: delete row)

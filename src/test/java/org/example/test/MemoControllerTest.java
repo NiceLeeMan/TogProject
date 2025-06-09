@@ -2,6 +2,7 @@ package org.example.test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.config.TestApiConfig;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -10,6 +11,7 @@ import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,17 +32,20 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MemoControllerTest {
 
-    private static final String BASE_URL   = "http://localhost:8080";
-    private static final String MEMO_URL   = BASE_URL + "/api/memo";
+    private static final String BASE_URL     = TestApiConfig.get("api.baseUrl");
+    private static final String MEMO_SAVE    = TestApiConfig.get("api.memo.save");
+    private static final String MEMO_GET     = TestApiConfig.get("api.memo.get");
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // 이미 DB에 존재한다고 가정할 사용자 정보
-    private static final String TEST_OWNER_USERNAME  = "qwe12345";
-    private static final String TEST_FRIEND_USERNAME = "qwe123456";
+    private static final String OWNER= "testUser_1";
+    private static final String FRIEND= "testUser_2";
 
     // 메모 테스트 데이터
-    private static final String TEST_DATE    = "2025-06-06";
-    private static final String TEST_CONTENT = "";
+    private static final String TEST_DATE    = "2025-06-08";
+    private static final String TEST_CONTENT = "테스트 메모내용3";
+    private static final String TEST_DATE_NONE = "2025-06-23";
 
     // 전역 CookieManager: 세션 쿠키가 필요한 경우 유지
     private static CookieManager cookieManager;
@@ -52,161 +57,115 @@ public class MemoControllerTest {
         CookieHandler.setDefault(cookieManager);
     }
 
-    /**
-     * 1) 메모 저장 기능 테스트
-     *    POST /api/memo/save
-     */
+    /** 1) 메모 저장 기능 테스트 */
     @Test
     @Order(1)
-    @DisplayName("메모 저장 기능: POST /api/memo/save")
-    void testSaveMemo() throws IOException {
-        String saveUrl = MEMO_URL + "/save";
-
+    void testSaveMemo() throws Exception {
         // 요청 JSON 구성
-        String requestJson = String.format(
-                "{\"ownerUsername\":\"%s\",\"friendUsername\":\"%s\",\"createdDate\":\"%s\",\"content\":\"%s\"}",
-                TEST_OWNER_USERNAME, TEST_FRIEND_USERNAME, TEST_DATE, TEST_CONTENT
+        Map<String, String> payload = Map.of(
+                "ownerUsername",  OWNER,
+                "friendUsername", FRIEND,
+                "createdDate",    TEST_DATE,
+                "content",        TEST_CONTENT
         );
 
-        HttpResponse response = sendPostRequest(saveUrl, requestJson);
+        String url = BASE_URL + MEMO_SAVE;
+        HttpResponse res = sendPost(url, objectMapper.writeValueAsString(payload));
 
-        // 상태 코드 200 확인
-        assertEquals(200, response.statusCode,
-                "메모 저장 시 HTTP 상태 코드는 200이어야 합니다. 실제: " + response.statusCode);
+        System.out.println("[testSaveMemo] Response Body: " + res.body);
+        assertEquals(200, res.statusCode);
 
-        // 응답 JSON 파싱 및 필드 검증
-        JsonNode root = objectMapper.readTree(response.body);
-        assertTrue(root.has("message"),     "응답에 'message' 필드가 포함되어야 합니다.");
-        assertTrue(root.has("memoId"),      "응답에 'memoId' 필드가 포함되어야 합니다.");
-        assertTrue(root.has("createdDate"), "응답에 'createdDate' 필드가 포함되어야 합니다.");
+        JsonNode root = objectMapper.readTree(res.body);
+        assertTrue(root.has("message"));
+        assertTrue(root.has("memoId"));
+        assertTrue(root.has("createdDate"));
 
-        String message = root.get("message").asText();
-        long memoId    = root.get("memoId").asLong();
-        String date    = root.get("createdDate").asText();
-
-        assertEquals("메모 저장 성공", message,
-                "메모 저장 성공 시 message 값은 \"메모 저장 성공\"이어야 합니다. 실제: " + message);
-        assertTrue(memoId > 0,
-                "memoId는 0보다 큰 값이어야 합니다. 실제: " + memoId);
-        assertEquals(TEST_DATE, date,
-                "서버가 반환한 createdDate가 요청한 날짜와 동일해야 합니다. 실제: " + date);
+        assertEquals("메모 저장 성공", root.get("message").asText());
+        assertTrue(root.get("memoId").asLong() > 0);
+        assertEquals(TEST_DATE, root.get("createdDate").asText());
     }
 
-    /**
-     * 2) 특정 날짜의 메모 조회 기능 테스트
-     *    GET /api/memo/get?owner={ownerUsername}&friend={friendUsername}&date={yyyy-MM-dd}
-     */
+    /** 2) 특정 날짜 메모 조회 기능 테스트 */
     @Test
     @Order(2)
-    @DisplayName("메모 조회 기능: GET /api/memo/get?owner=&friend=&date=")
-    void testGetMemoByDate() throws IOException {
-        // --- 사전 준비: 같은 날짜에 메모 저장 (이미 저장되어 있지 않다면) ---
-        String saveUrl = MEMO_URL + "/save";
-        String saveJson = String.format(
-                "{\"ownerUsername\":\"%s\",\"friendUsername\":\"%s\",\"createdDate\":\"%s\",\"content\":\"%s\"}",
-                TEST_OWNER_USERNAME, TEST_FRIEND_USERNAME, TEST_DATE, TEST_CONTENT
+    void testGetMemoByDate() throws Exception {
+        // 사전 저장 (없으면 저장)
+        Map<String, String> savePayload = Map.of(
+                "ownerUsername",  OWNER,
+                "friendUsername", FRIEND,
+                "createdDate",    TEST_DATE,
+                "content",        TEST_CONTENT
         );
-        HttpResponse saveRes = sendPostRequest(saveUrl, saveJson);
-        assertEquals(200, saveRes.statusCode,
-                "조회 전 사전 저장 시에도 HTTP 상태 코드는 200이어야 합니다. 실제: " + saveRes.statusCode);
+        sendPost(BASE_URL + MEMO_SAVE, objectMapper.writeValueAsString(savePayload));
 
-        // --- 메모 조회 요청 ---
-        String getUrl = String.format(
-                MEMO_URL + "/get?owner=%s&friend=%s&date=%s",
-                TEST_OWNER_USERNAME, TEST_FRIEND_USERNAME, TEST_DATE
+        // 조회 요청
+        String url = String.format(
+                "%s%s?owner=%s&friend=%s&date=%s",
+                BASE_URL, MEMO_GET, OWNER, FRIEND, TEST_DATE
         );
-        HttpResponse getRes = sendGetRequest(getUrl);
+        HttpResponse res = sendGet(url);
 
-        // 상태 코드 200 확인
-        assertEquals(200, getRes.statusCode,
-                "메모 조회 시 HTTP 상태 코드는 200이어야 합니다. 실제: " + getRes.statusCode);
+        System.out.println("[testGetMemoByDate] Response Body: " + res.body);
+        assertEquals(200, res.statusCode);
 
-        // 응답 JSON 파싱 및 필드 검증
-        JsonNode root = objectMapper.readTree(getRes.body);
-        assertTrue(root.has("content"),     "응답에 'content' 필드가 포함되어야 합니다.");
-        assertTrue(root.has("createdDate"), "응답에 'createdDate' 필드가 포함되어야 합니다.");
+        JsonNode root = objectMapper.readTree(res.body);
+        assertTrue(root.has("content"));
+        assertTrue(root.has("createdDate"));
 
-        String content   = root.get("content").asText();
-        String createdOn = root.get("createdDate").asText();
+        assertEquals(TEST_CONTENT, root.get("content").asText());
+        assertEquals(TEST_DATE, root.get("createdDate").asText());
+    }
+    /** 3) 특정 날짜 메모 조회 기능 테스트 (메모 없는 날짜) */
+    @Test
+    @Order(3)
+    void testGetMemoByDate_None() throws Exception {
+        // 조회 요청 (메모 없는 날짜)
+        String url = String.format("%s%s?owner=%s&friend=%s&date=%s",
+                BASE_URL, MEMO_GET, OWNER, FRIEND, TEST_DATE_NONE);
+        HttpResponse res = sendGet(url);
 
-        System.out.println("조회된 메모 내용: " + content);
-        System.out.println("조회된 메모 날짜: " + createdOn);
+        System.out.println("[testGetMemoByDate_None] Response: " + res.body);
+        assertEquals(200, res.statusCode);
 
-        assertEquals(TEST_CONTENT, content,
-                "조회된 content가 저장된 내용과 일치해야 합니다. 실제: " + content);
-        assertEquals(TEST_DATE, createdOn,
-                "조회된 createdDate가 요청한 날짜와 동일해야 합니다. 실제: " + createdOn);
+        JsonNode root = objectMapper.readTree(res.body);
+        // content, createdDate 모두 null이어야 함
+        assertTrue(root.has("content"));
+        assertTrue(root.has("createdDate"));
+        assertTrue(root.get("content").isNull(),
+                "메모 없는 날짜의 content는 null이어야 합니다.");
+        assertTrue(root.get("createdDate").isNull(),
+                "메모 없는 날짜의 createdDate는 null이어야 합니다.");
     }
 
     // -------------------------------------------------------------------
     // Helper Method: HTTP POST 요청 보내기
     // -------------------------------------------------------------------
-    private static HttpResponse sendPostRequest(String urlString, String jsonBody) throws IOException {
+    // Helper methods
+    private static HttpResponse sendPost(String url, String body) throws IOException {
+        return sendRequest(url, "POST", body);
+    }
+    private static HttpResponse sendGet(String url) throws IOException {
+        return sendRequest(url, "GET", null);
+    }
+    private static HttpResponse sendRequest(String urlString, String method, String body) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        conn.setDoOutput(true);
-
-        try (OutputStream os = conn.getOutputStream()) {
-            byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
-
-        int statusCode = conn.getResponseCode();
-        InputStream is = (statusCode >= 200 && statusCode < 300)
-                ? conn.getInputStream()
-                : conn.getErrorStream();
-
-        StringBuilder responseBuilder = new StringBuilder();
-        if (is != null) {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    responseBuilder.append(line.trim());
-                }
+        conn.setRequestMethod(method);
+        if (body != null) {
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(body.getBytes(StandardCharsets.UTF_8));
             }
         }
-
-        return new HttpResponse(statusCode, responseBuilder.toString());
-    }
-
-    // -------------------------------------------------------------------
-    // Helper Method: HTTP GET 요청 보내기
-    // -------------------------------------------------------------------
-    private static HttpResponse sendGetRequest(String urlString) throws IOException {
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-
-        int statusCode = conn.getResponseCode();
-        InputStream is = (statusCode >= 200 && statusCode < 300)
-                ? conn.getInputStream()
-                : conn.getErrorStream();
-
-        StringBuilder responseBuilder = new StringBuilder();
-        if (is != null) {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    responseBuilder.append(line.trim());
-                }
-            }
+        int status = conn.getResponseCode();
+        InputStream is = (status < 400)? conn.getInputStream() : conn.getErrorStream();
+        StringBuilder sb = new StringBuilder();
+        if (is != null) try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line);
         }
-
-        return new HttpResponse(statusCode, responseBuilder.toString());
+        return new HttpResponse(status, sb.toString());
     }
-
-    /**
-     * 상태 코드와 응답 바디를 함께 담아 반환하는 DTO
-     */
-    private static class HttpResponse {
-        final int statusCode;
-        final String body;
-
-        HttpResponse(int statusCode, String body) {
-            this.statusCode = statusCode;
-            this.body       = body;
-        }
-    }
+    private record HttpResponse(int statusCode, String body) {}
 }

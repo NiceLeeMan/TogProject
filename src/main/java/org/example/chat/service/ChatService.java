@@ -173,4 +173,26 @@ public class ChatService {
 
         return res;
     }
+
+    /**
+     * 채팅방 존재 여부 확인
+     */
+    public boolean existsRoom(Long roomId) throws SQLException {
+        return chatDAO.existsById(roomId);
+    }
+
+    /**
+     * 사용자가 채팅방의 활성 멤버인지 확인
+     */
+    public boolean isActiveMember(Long roomId, Long userId) throws SQLException {
+        return chatDAO.isMemberInRoom(roomId, userId);
+    }
+
+    /**
+     * 채팅방 메시지 히스토리 조회 (가입 시점 이후)
+     */
+    public List<MessageInfo> getChatHistory(Long roomId, String username) throws SQLException {
+        // 사용자별 가입 시점 이후 메시지 조회
+        return chatDAO.selectChatHistorySinceJoin(roomId, username);
+    }
 }
