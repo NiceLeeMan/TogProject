@@ -46,7 +46,7 @@ public class ChatControllerTest {
     private static final String userA = "user_1749109876"; // 이기백
     private static final String userB = "user_1749110000"; // 서정춘
     private static final String userC = "qwe12345";        // 고종화
-    private static final String userD = "qwe123456";       // 김덕민
+    // 김덕민
     private static final String userE = "qwe1234567";      // 정태우
 
     private static java.net.CookieManager cookieManager;

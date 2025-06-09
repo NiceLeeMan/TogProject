@@ -7,10 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.*;
 import org.example.user.dao.UserDAO;
 import org.example.user.dto.*;
 import org.example.user.service.UserService;
@@ -63,6 +60,8 @@ public class UserController extends HttpServlet {
         this.userService = new UserService(userDAO);
         this.objectMapper = new ObjectMapper();
     }
+
+
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -130,6 +129,7 @@ public class UserController extends HttpServlet {
         SignInReqDto reqDto = objectMapper.readValue(request.getInputStream(), SignInReqDto.class);
         SignInResDto resDto = userService.signIn(reqDto);
 
+        System.out.println("reqDto=" + reqDto +"/"+ "resDto=" + resDto);
         if (resDto == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             try (PrintWriter out = response.getWriter()) {
@@ -138,9 +138,25 @@ public class UserController extends HttpServlet {
             return;
         }
 
+        // 2) 응답 헤더 준비 (Content-Type 먼저)
+        response.setContentType("application/json; charset=UTF-8");
+        response.setStatus(HttpServletResponse.SC_OK);
+
+        // 3) 세션 생성 및 쿠키 헤더 강제 추가
         HttpSession httpSession = request.getSession(true);
-        httpSession.setAttribute("loginUserId", resDto.getId());
+        httpSession.setAttribute("loginUserId",   resDto.getId());
         httpSession.setAttribute("loginUsername", resDto.getUsername());
+        // 수동으로 Set-Cookie 헤더 달기
+
+        Cookie jsess = new Cookie("JSESSIONID", httpSession.getId());
+        jsess.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+        jsess.setHttpOnly(true);
+        response.addCookie(jsess);
+
+        System.out.println("response=" + response);
+
+        System.out.println("httpSession=" + httpSession);
+
         // (선택) DB status=true 로 변경
         userService.updateStatus(resDto.getId(), true);
 
@@ -153,9 +169,13 @@ public class UserController extends HttpServlet {
     // ↳ UserController.java 에서 handleSignOut 부분만 발췌
 
     private void handleSignOut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+        System.out.println("Cookie header on /signout → " + request.getHeader("Cookie"));
         // 1) 세션 가져오기 (세션이 없으면 null)
+
         HttpSession httpSession = request.getSession(false);
 
+        System.out.println("httpSession=" + httpSession);
         if (httpSession == null || httpSession.getAttribute("loginUserId") == null) {
             // 이미 로그아웃된 상태이거나 세션이 없는 경우
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
