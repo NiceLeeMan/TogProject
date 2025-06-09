@@ -47,7 +47,7 @@ public class UserController extends HttpServlet {
         } catch (IOException e) {
             throw new ServletException("db.properties 로딩 실패", e);
         }
-
+        System.out.println("[init] db.url = " + props.getProperty("db.url"));
         // 2) HikariCP 설정
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(props.getProperty("jdbc.url"));

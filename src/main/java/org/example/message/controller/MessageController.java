@@ -45,46 +45,45 @@ public class MessageController {
     private final MessageService messageService; // 외부에서 주입
 
     // 1) 모킹·단위 테스트용 생성자 (테스트 코드에서 이걸 호출)
+
     public MessageController(MessageService messageService) {
         this.messageService = messageService;
     }
-
     public MessageController() {
 
         HikariDataSource ds = DataSoruceConfig.getDataSource();
-
-        ChatDAO chatDao   = new ChatDAO(ds);
-        ChatService chatSvc = new ChatService(chatDao);
-        MessageDAO  msgDao = new MessageDAO(ds);
-        this.messageService = new MessageService(msgDao, chatSvc);
+        ChatService chatService = new ChatService(new ChatDAO(ds));
+        this.messageService = new MessageService(new MessageDAO(ds), chatService);
     }
 
     // 2) 기본 생성자: 과제 환경에서 바로 동작하도록 DEFAULT_SERVICE 사용
 
     @OnOpen
     public void onOpen(Session session, @PathParam("chatRoomId") Long chatRoomId) {
-        // chatRoomId에 대응하는 Set<Session>이 없으면 새로 만들고, 세션 추가
         roomSessions
-                .computeIfAbsent(chatRoomId, __ -> new CopyOnWriteArraySet<>())
+                .computeIfAbsent(chatRoomId, id -> new CopyOnWriteArraySet<>())
                 .add(session);
     }
 
     @OnMessage
     public void onMessage(Session session,
                           @PathParam("chatRoomId") Long chatRoomId,
-                          String messageJson) throws IOException, SQLException {
-        // 1) 요청 DTO
-        SendMessageReq req = objectMapper.readValue(messageJson, SendMessageReq.class);
-
-        // 2) 바로 응답 DTO 반환
-        SendMessageRes res = messageService.saveMessage(req);
-
-        // 3) JSON 직렬화 + 비동기 브로드캐스트
-        String resJson = objectMapper.writeValueAsString(res);
-        roomSessions.getOrDefault(chatRoomId, Collections.emptySet())
-                .stream()
-                .filter(Session::isOpen)
-                .forEach(s -> s.getAsyncRemote().sendText(resJson));
+                          String messageJson) throws IOException {
+        try {
+            // 1) 요청 DTO 역직렬화
+            SendMessageReq req = objectMapper.readValue(messageJson, SendMessageReq.class);
+            // 2) 메시지 저장
+            SendMessageRes res = messageService.saveMessage(req);
+            // 3) JSON 직렬화 및 브로드캐스트
+            String resJson = objectMapper.writeValueAsString(res);
+            roomSessions.getOrDefault(chatRoomId, Collections.emptySet())
+                    .stream()
+                    .filter(Session::isOpen)
+                    .forEach(s -> s.getAsyncRemote().sendText(resJson));
+        } catch (SQLException e) {
+            // 에러 응답
+            sendError(session, e.getMessage());
+        }
     }
 
     @OnClose
@@ -100,20 +99,20 @@ public class MessageController {
 
     @OnError
     public void onError(Session session, Throwable throwable, @PathParam("chatRoomId") Long chatRoomId) {
-        // WebSocket 에러 발생 시 로그
+        // 간단 로깅
         throwable.printStackTrace();
     }
 
     private void sendError(Session session, String errorMsg) {
         try {
-            String json = objectMapper.writeValueAsString(
-                    java.util.Collections.singletonMap("error", errorMsg)
-            );
             if (session.isOpen()) {
+                String json = objectMapper.writeValueAsString(
+                        Collections.singletonMap("error", errorMsg)
+                );
                 session.getBasicRemote().sendText(json);
             }
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

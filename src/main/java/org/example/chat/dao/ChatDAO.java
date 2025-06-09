@@ -321,7 +321,8 @@ public class ChatDAO {
                             senderId,
                             senderUsername,
                             contents,
-                            createdAt
+                            createdAt,
+                            chatRoomId
                     ));
                 }
             }

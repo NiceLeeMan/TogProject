@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -35,36 +36,85 @@ public class MessageRestController extends HttpServlet {
     private MessageService messageService;
     private ObjectMapper objectMapper;
 
+    public MessageRestController() {
+        super();
+    }
+
+    public MessageRestController(MessageService messageService) {
+        this.messageService = messageService;
+        // 테스트에서는 간단하게 ObjectMapper 기본 설정만 해 줍니다.
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule());
+    }
+
     @Override
     public void init() throws ServletException {
         super.init();
-        // ObjectMapper 설정
+
+        // 1) ObjectMapper 초기화
         objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // DataSource, Service 초기화
+        // 2) db.properties 로드
         Properties props = new Properties();
         try (InputStream in = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+            if (in == null) {
+                throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
+            }
             props.load(in);
         } catch (IOException e) {
             throw new ServletException("db.properties 로딩 실패", e);
         }
 
+        System.out.println("[init] db.url = " + props.getProperty("db.url"));
+
+        // 3) HikariConfig에 JDBC 정보 주입
         HikariConfig config = new HikariConfig();
-        DataSource ds = new HikariDataSource(config);
+        config.setJdbcUrl(props.getProperty("db.url"));
+        config.setUsername(props.getProperty("db.username"));
+        config.setPassword(props.getProperty("db.password"));
+        // driverClassName 은 생략 가능
+
+        DataSource ds;
+        try {
+            ds = new HikariDataSource(config);
+            System.out.println("[init] DataSource = " + ds);
+        } catch (Exception e) {
+            throw new ServletException("HikariDataSource 생성 실패", e);
+        }
+        System.out.println("DataSource 초기화 성공: " + ds);
+
+        // 4) Service 계층 초기화
         ChatService chatService = new ChatService(new ChatDAO(ds));
         this.messageService = new MessageService(new MessageDAO(ds), chatService);
     }
-
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        System.out.println(">> Incoming POST");
+        System.out.println("   servletPath: " + req.getServletPath());
+        System.out.println("   pathInfo   : " + req.getPathInfo());
         resp.setContentType("application/json; charset=UTF-8");
+
         String path = req.getPathInfo(); // expected "/send"
-        if ("/send".equals(path)) {
-            handleSendMessage(req, resp);
-        } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "지원하지 않는 경로: POST " + path);
+        System.out.println("path: " + path);
+
+        try {
+            if ("/send".equals(path)) {
+                handleSendMessage(req, resp);
+            } else {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND, "지원하지 않는 경로: POST " + path);
+            }
+        } catch (Exception e) {
+            // 예외 스택트레이스와 메시지 모두 찍기
+            e.printStackTrace();
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write(
+                    new ObjectMapper().writeValueAsString(
+                            Map.of("error", e.getClass().getSimpleName(),
+                                    "message", e.getMessage())
+                    )
+            );
         }
     }
 
@@ -72,6 +122,7 @@ public class MessageRestController extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json; charset=UTF-8");
         String path = req.getPathInfo(); // expected null or "/"
+        System.out.println("path: " + path);
         if (path == null || "/".equals(path)) {
             handleGetMessageHistory(req, resp);
         } else {
@@ -81,6 +132,7 @@ public class MessageRestController extends HttpServlet {
 
     private void handleSendMessage(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         SendMessageReq sendReq = objectMapper.readValue(req.getInputStream(), SendMessageReq.class);
+        System.out.println("sendReq: " + sendReq);
         try {
             SendMessageRes sendRes = messageService.saveMessage(sendReq);
             resp.setStatus(HttpServletResponse.SC_CREATED);
