@@ -148,31 +148,41 @@ public class MessageRestController extends HttpServlet {
         }
     }
 
-    private void handleGetMessageHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    private void handleGetMessageHistory(HttpServletRequest req,
+                                         HttpServletResponse resp) throws IOException {
+        // 1) 로그 찍어보기
         System.out.printf("[handleGetMessageHistory] roomId=%s, username=%s%n",
                 req.getParameter("roomId"),
                 req.getParameter("username"));
-        String roomIdParam = req.getParameter("roomId");
-        String username = req.getParameter("username");
 
-        System.out.println("req : "+req);
+        // 2) 파라미터 유효성 검사
+        String roomIdParam = req.getParameter("roomId");
+        String username    = req.getParameter("username");
         if (roomIdParam == null || username == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing roomId or username parameter");
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Missing roomId or username parameter");
             return;
         }
+
+        // 3) 타입 변환
         Long roomId = Long.valueOf(roomIdParam);
         System.out.println("roomId: " + roomId);
 
         try {
+            // 4) 서비스 호출
             List<MessageInfo> messages = messageService.fetchMessages(roomId, username);
+
+            // 5) 응답 작성
             resp.setStatus(HttpServletResponse.SC_OK);
+            resp.setContentType("application/json; charset=UTF-8");
 
             System.out.println("messages: " + messages);
             try (PrintWriter out = resp.getWriter()) {
                 objectMapper.writeValue(out, messages);
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            // DB 에러는 500으로
+            System.err.println("[ERROR] " + e.getMessage());
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }

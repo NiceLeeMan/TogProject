@@ -90,7 +90,7 @@ public class MessageRestControllerTest {
         assertTrue(arr.isArray(), "응답은 JSON 배열이어야 합니다.");
         assertTrue(arr.size() >= 1, "최소 한 개 이상의 메시지가 반환되어야 합니다.");
         JsonNode first = arr.get(0);
-        assertEquals(56L, first.get("chatRoomId").asLong());
+        assertEquals(56L, first.get("roomId").asLong());
         assertTrue(first.has("senderUsername"));
         assertTrue(first.has("contents"));
     }
