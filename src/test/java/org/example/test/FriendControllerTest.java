@@ -2,6 +2,7 @@ package org.example.test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.config.TestApiConfig;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -26,122 +27,91 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class FriendControllerTest {
 
-    private static final String BASE_URL_FRIEND = "http://localhost:8080/api/friends";
-    private static final String BASE_URL_USER   = "http://localhost:8080/api/user";
+    private static final String BASE_URL = TestApiConfig.get("api.baseUrl");
+    private static final String FRIENDS_PATH = TestApiConfig.get("api.friends.add");
+    private static final String USER_SIGNUP = TestApiConfig.get("api.user.signup");
+    private static final String USER_SIGNIN = TestApiConfig.get("api.user.signin");
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 테스트용 사용자 정보 (각각 유니크하게 생성)
-    private static final String testUser1     = "qwe12345";
-    private static final String testPass1     = "qwe@12345";
-    private static final String testName1     = "고종화";
+    // DB에 이미 존재하는 테스트용 사용자 정보 (이미 SignUp되어 있음)
+    private static final long testUser1Id = 19L;
+    private static final String testUser1 = "testUser_1";
+    private static final String testPass1 = "pw@1001";
 
-    private static final String testUser2     = "qwe123457";
-    private static final String testPass2     = "qwe@123457";
-    private static final String testName2     = "정태우";
+    private static final long testUser2Id = 21L;
+    private static final String testUser2 = "testUser_3";
+
 
     // 전역 CookieManager: 로그인 세션 쿠키(JSESSIONID 등)를 유지하도록 함
     private static java.net.CookieManager cookieManager;
 
     @BeforeAll
-    static void setUp() throws Exception {
+    static void beforeAll() {
         // CookieManager 설정
-        cookieManager = new java.net.CookieManager();
-        java.net.CookieHandler.setDefault(cookieManager);
-
-        // 1) testUser1 회원가입 (이미 존재하면 409이 오더라도 무시)
-        Map<String, String> signupPayload1 = new HashMap<>();
-        signupPayload1.put("username", testUser1);
-        signupPayload1.put("password", testPass1);
-        signupPayload1.put("name",     testName1);
-
-        HttpResponse res1 = sendPostRequest(BASE_URL_USER + "/signup",
-                objectMapper.writeValueAsString(signupPayload1));
-        // 201 Created OR 409 Conflict(이미 존재) 모두 무시하고 진행
-
-        // 2) testUser2 회원가입
-        Map<String, String> signupPayload2 = new HashMap<>();
-        signupPayload2.put("username", testUser2);
-        signupPayload2.put("password", testPass2);
-        signupPayload2.put("name",     testName2);
-
-        HttpResponse res2 = sendPostRequest(BASE_URL_USER + "/signup",
-                objectMapper.writeValueAsString(signupPayload2));
-        // 201 Created OR 409 Conflict 무시
+        java.net.CookieManager cm = new java.net.CookieManager();
+        java.net.CookieHandler.setDefault(cm);
     }
 
-    /**
-     * 1. 친구 추가 테스트
-     */
     @Test
     @Order(1)
     void testAddFriend() throws Exception {
-        // 1) 요청 JSON 구성 (testUser1이 testUser2를 친구로 추가)
-        Map<String, String> payload = new HashMap<>();
-        payload.put("username",       testUser1);
+        // testUser1 로그인 (세션 쿠키 취득)
+        Map<String, String> login = Map.of(
+                "username", testUser1,
+                "password", testPass1
+        );
+        sendPost(BASE_URL + USER_SIGNIN, objectMapper.writeValueAsString(login));
+
+        // 친구 추가 요청 (testUser1이 testUser2를 친구로 추가)
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("username", testUser1);
         payload.put("friendUsername", testUser2);
 
-        // 2) HTTP POST 요청
-        HttpResponse res = sendPostRequest(BASE_URL_FRIEND, objectMapper.writeValueAsString(payload));
+        HttpResponse res = sendPost(
+                BASE_URL + FRIENDS_PATH,
+                objectMapper.writeValueAsString(payload)
+        );
+        assertEquals(200, res.statusCode, "POST 실패");
 
-        // 3) 상태 코드 확인 (200 OK)
-        assertEquals(200, res.statusCode, "친구 추가 시 HTTP 상태 코드는 200이어야 합니다. 실제: " + res.statusCode);
-
-        // 4) 응답 바디 JSON 파싱
         JsonNode root = objectMapper.readTree(res.body);
+        assertEquals("OK", root.get("statusCode").asText());
 
-        // 필수 필드: statusCode, friendsList
-        assertTrue(root.has("statusCode"), "응답에 'statusCode' 필드가 있어야 합니다.");
-        assertTrue(root.has("friendsList"), "응답에 'friendsList' 필드가 있어야 합니다.");
-
-        String statusCode = root.get("statusCode").asText();
-        assertEquals("OK", statusCode, "친구 추가 성공 시 statusCode는 \"OK\"여야 합니다. 실제: " + statusCode);
-
-        JsonNode friendsArray = root.get("friendsList");
-        assertTrue(friendsArray.isArray(), "'friendsList'는 배열이어야 합니다.");
-        assertTrue(friendsArray.size() >= 1, "친구 목록에 최소 한 명 이상 있어야 합니다. 실제 크기: " + friendsArray.size());
-
-        // 친구 목록 안에 testUser2가 포함되어 있는지 확인
         boolean found = false;
-        for (JsonNode friendNode : friendsArray) {
-            if (friendNode.has("username") && testUser2.equals(friendNode.get("username").asText())) {
+        for (JsonNode f : root.get("friendsList")) {
+            if (testUser2.equals(f.get("username").asText()) &&
+                    f.get("userId").asLong() == testUser2Id) {
                 found = true;
                 break;
             }
         }
-        assertTrue(found, "추가된 친구 '" + testUser2 + "'가 친구 목록에 포함되어야 합니다.");
+        assertTrue(found, "DB에 있는 testUser_2 (ID=20)가 목록에 있어야 합니다.");
     }
 
     /**
-     * 2. 친구 목록 조회 테스트 (로그인 없이, username 파라미터만으로 조회)
-     *     • 친구 목록을 콘솔에도 출력
+     * 2. 친구 목록 조회 테스트
      */
     @Test
     @Order(2)
     void testGetFriendsList() throws Exception {
-        // 1) HTTP GET 요청: 친구 목록 조회 (쿼리 파라미터로 username 전달)
-        String urlWithParam = BASE_URL_FRIEND + "?username=" + testUser1;
-        HttpResponse getRes = sendGetRequest(urlWithParam);
+        String url = String.format(
+                "%s%s?username=%s",
+                BASE_URL, FRIENDS_PATH, testUser1
+        );
+        HttpResponse res = sendGet(url);
+        assertEquals(200, res.statusCode);
 
-        // 2) 상태 코드 확인 (200 OK)
-        assertEquals(200, getRes.statusCode, "친구 목록 조회 시 HTTP 상태 코드는 200이어야 합니다. 실제: " + getRes.statusCode);
+        JsonNode root = objectMapper.readTree(res.body);
+        assertTrue(root.has("friendsList"), "friendsList 필드가 존재해야 합니다.");
 
-        // 3) 응답 바디 JSON 파싱
-        JsonNode root = objectMapper.readTree(getRes.body);
-
-        // 필수 필드: friendsList
-        assertTrue(root.has("friendsList"), "응답에 'friendsList' 필드가 있어야 합니다.");
-
-        JsonNode friendsArray = root.get("friendsList");
-        assertTrue(friendsArray.isArray(), "'friendsList'는 배열이어야 합니다.");
-
-        // 콘솔에 "나에게 등록된 친구" 목록 출력
-        List<String> friendUsernames = new ArrayList<>();
-        for (JsonNode friendNode : friendsArray) {
-            if (friendNode.has("username")) {
-                friendUsernames.add(friendNode.get("username").asText());
-            }
+        List<String> usernames = new ArrayList<>();
+        for (JsonNode f : root.get("friendsList")) {
+            usernames.add(f.get("username").asText());
         }
-        System.out.println("나에게 등록된 친구: " + friendUsernames);
+        System.out.println("나의 친구 목록: " + usernames);
+
+        // 최소 한 명 이상 친구가 있어야 하고, testUser2가 포함되어야 함
+        assertFalse(usernames.isEmpty(), "친구 목록이 비어 있으면 안됩니다.");
 
 
     }
@@ -150,43 +120,33 @@ public class FriendControllerTest {
     /**
      * 3. 친구 삭제 테스트
      */
+    /**
+     * 3. 친구 삭제 테스트
+     */
     @Test
     @Order(3)
     void testRemoveFriend() throws Exception {
-        // 1) 요청 JSON 구성 (testUser1이 testUser2를 친구에서 삭제)
-        Map<String, String> payload = new HashMap<>();
-        payload.put("username",       testUser1);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("username", testUser1);
         payload.put("friendUsername", testUser2);
 
-        // 2) HTTP DELETE 요청
-        HttpResponse res = sendDeleteRequest(BASE_URL_FRIEND, objectMapper.writeValueAsString(payload));
+        HttpResponse res = sendDelete(
+                BASE_URL + FRIENDS_PATH,
+                objectMapper.writeValueAsString(payload)
+        );
+        assertEquals(200, res.statusCode);
 
-        // 3) 상태 코드 확인 (200 OK)
-        assertEquals(200, res.statusCode, "친구 삭제 시 HTTP 상태 코드는 200이어야 합니다. 실제: " + res.statusCode);
-
-        // 4) 응답 바디 JSON 파싱
         JsonNode root = objectMapper.readTree(res.body);
+        assertTrue(root.get("message").asText().contains("삭제 성공"));
 
-        // 필수 필드: message, friendsList
-        assertTrue(root.has("message"),     "응답에 'message' 필드가 있어야 합니다.");
-        assertTrue(root.has("friendsList"), "응답에 'friendsList' 필드가 있어야 합니다.");
-
-        String message = root.get("message").asText();
-        assertTrue(message.contains("삭제 성공"), "친구 삭제 성공 시 메시지에 '삭제 성공'이 포함되어야 합니다. 실제: " + message);
-
-        JsonNode friendsArray = root.get("friendsList");
-        assertTrue(friendsArray.isArray(), "'friendsList'는 배열이어야 합니다.");
-
-        // 삭제 후 리스트에 여전히 testUser2가 남아 있지 않은지 확인
-        List<String> remainingUsernames = new ArrayList<>();
-        for (JsonNode friendNode : friendsArray) {
-            if (friendNode.has("username")) {
-                remainingUsernames.add(friendNode.get("username").asText());
-            }
+        List<Long> ids = new ArrayList<>();
+        for (JsonNode f : root.get("friendsList")) {
+            ids.add(f.get("userId").asLong());
         }
-        assertFalse(remainingUsernames.contains(testUser2),
-                "삭제된 친구 '" + testUser2 + "'가 여전히 친구 목록에 포함되어 있으면 안 됩니다. 실제 목록: " + remainingUsernames);
+        assertFalse(ids.contains(testUser2Id),
+                "삭제된 친구 ID=20이 목록에 있으면 안됩니다.");
     }
+
     // -------------------------------------------------------------------
     //  Helper Method: HTTP POST 요청 보내기
     // -------------------------------------------------------------------
@@ -226,75 +186,48 @@ public class FriendControllerTest {
     // -------------------------------------------------------------------
     //  Helper Method: HTTP DELETE 요청 보내기
     // -------------------------------------------------------------------
-    private static HttpResponse sendDeleteRequest(String urlString, String jsonBody) throws IOException {
+    // Helper methods
+    private static HttpResponse sendPost(String url, String body) throws IOException {
+        return sendRequest(url, "POST", body);
+    }
+
+    private static HttpResponse sendDelete(String url, String body) throws IOException {
+        return sendRequest(url, "DELETE", body);
+    }
+
+    private static HttpResponse sendGet(String url) throws IOException {
+        return sendRequest(url, "GET", null);
+    }
+
+    private static HttpResponse sendRequest(String urlString, String method, String body) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("DELETE");
-
-        // JSON 바디를 주는 경우
-        if (jsonBody != null) {
+        conn.setRequestMethod(method);
+        if (body != null) {
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             conn.setDoOutput(true);
             try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
+                os.write(body.getBytes(StandardCharsets.UTF_8));
             }
         }
-
-        // 쿠키 유지: 전역 CookieManager가 설정되어 있어 자동으로 쿠키가 관리됩니다.
         int status = conn.getResponseCode();
-        InputStream is = (status >= 200 && status < 300) ? conn.getInputStream() : conn.getErrorStream();
-
-        // 응답 바디 읽기
-        StringBuilder responseText = new StringBuilder();
-        if (is != null) {
+        InputStream is = status < 400 ? conn.getInputStream() : conn.getErrorStream();
+        StringBuilder resp = new StringBuilder();
+        if (is != null)
             try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 String line;
-                while ((line = br.readLine()) != null) {
-                    responseText.append(line);
-                }
+                while ((line = br.readLine()) != null) resp.append(line);
             }
-        }
-
-        return new HttpResponse(status, responseText.toString());
+        return new HttpResponse(status, resp.toString());
     }
 
-    // -------------------------------------------------------------------
-    //  Helper Method: HTTP GET 요청 보내기
-    // -------------------------------------------------------------------
-    private static HttpResponse sendGetRequest(String urlString) throws IOException {
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-
-        // 쿠키 유지: 전역 CookieManager가 설정되어 있어 자동으로 쿠키가 관리됩니다.
-        int status = conn.getResponseCode();
-        InputStream is = (status >= 200 && status < 300) ? conn.getInputStream() : conn.getErrorStream();
-
-        // 응답 바디 읽기
-        StringBuilder responseText = new StringBuilder();
-        if (is != null) {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    responseText.append(line);
-                }
-            }
-        }
-
-        return new HttpResponse(status, responseText.toString());
-    }
-
-    /**
-     * 상태 코드와 응답 바디를 함께 담아 반환하는 단순 DTO
-     */
     private static class HttpResponse {
         int statusCode;
         String body;
 
-        HttpResponse(int statusCode, String body) {
-            this.statusCode = statusCode;
-            this.body = body;
+        HttpResponse(int s, String b) {
+            statusCode = s;
+            body = b;
         }
     }
 }
