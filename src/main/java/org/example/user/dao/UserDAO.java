@@ -43,6 +43,7 @@ public class UserDAO {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
+            System.out.println("username = " + username);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

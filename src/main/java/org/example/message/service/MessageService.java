@@ -29,13 +29,8 @@ public class MessageService {
      * 메시지를 저장하고, 응답 DTO로 반환
      */
     public SendMessageRes saveMessage(SendMessageReq req) throws SQLException {
-        // 방 존재 및 멤버 권한 확인
-        if (!chatService.existsRoom(req.getRoomId())) {
-            throw new SQLException("Chat room not found: " + req.getRoomId());
-        }
-        if (!chatService.isActiveMember(req.getRoomId(), req.getSenderId())) {
-            throw new SQLException("User " + req.getSenderId() + " is not active in chat room " + req.getRoomId());
-        }
+
+        System.out.println("saveMessage");
 
         // 엔티티 생성
         Message msg = new Message();
@@ -43,9 +38,10 @@ public class MessageService {
         msg.setSenderId(req.getSenderId());
         msg.setContents(req.getContents());
         msg.setCreatedAt(LocalDateTime.now());
-
+        System.out.println("msg: " + msg);
         // 저장
         Message saved = messageDAO.save(msg);
+
 
         // DTO 변환
         return new SendMessageRes(saved);
@@ -58,10 +54,10 @@ public class MessageService {
      */
     public List<MessageInfo> fetchMessages(Long roomId, String username) throws SQLException {
         // 방 존재 확인
-        if (!chatService.existsRoom(roomId)) {
-            throw new SQLException("Chat room not found: " + roomId);
-        }
         // 사용자별 가입 이후 메시지 조회
+        System.out.println("fetchMessages");
+        System.out.println("roomId(fetchMessages): " + roomId);
+        System.out.println("username(fetchMessages): " + username);
         return messageDAO.selectChatHistorySinceJoin(roomId, username);
     }
 }

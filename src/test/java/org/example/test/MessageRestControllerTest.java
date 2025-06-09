@@ -52,6 +52,7 @@ public class MessageRestControllerTest {
         reqDto.setSenderId(19L);
         reqDto.setContents("안녕하세요!");
 
+        System.out.println("reqDto = " + reqDto);
 
         // 요청 보내기
         String url = baseUrl + sendPath;
@@ -79,17 +80,17 @@ public class MessageRestControllerTest {
         // 앞선 testSendMessage가 저장한 메시지를 포함해 조회 가능해야 합니다.
 
         String url = String.format("%s%s?roomId=%d&username=%s",
-                baseUrl, fetchPath, 100L, "testUser_5");
+                baseUrl, fetchPath, 56L, "testUser_1");
 
         HttpResponse res = sendGet(url);
-
+        System.out.println("url : " +url);
         assertEquals(200, res.statusCode, "GET /api/messages?roomId=...&username=...는 200을 반환해야 합니다.");
 
         JsonNode arr = objectMapper.readTree(res.body);
         assertTrue(arr.isArray(), "응답은 JSON 배열이어야 합니다.");
         assertTrue(arr.size() >= 1, "최소 한 개 이상의 메시지가 반환되어야 합니다.");
         JsonNode first = arr.get(0);
-        assertEquals(100L, first.get("chatRoomId").asLong());
+        assertEquals(56L, first.get("chatRoomId").asLong());
         assertTrue(first.has("senderUsername"));
         assertTrue(first.has("contents"));
     }
@@ -124,6 +125,7 @@ public class MessageRestControllerTest {
 
         int status = conn.getResponseCode();
         String body = readBody(conn, status);
+        System.out.println("body : " + body);
         return new HttpResponse(status, body);
     }
 

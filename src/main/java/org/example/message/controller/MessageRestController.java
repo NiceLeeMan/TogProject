@@ -67,13 +67,13 @@ public class MessageRestController extends HttpServlet {
             throw new ServletException("db.properties 로딩 실패", e);
         }
 
-        System.out.println("[init] db.url = " + props.getProperty("db.url"));
+        System.out.println("[init] jdbc.url = " + props.getProperty("jdbc.url"));
 
         // 3) HikariConfig에 JDBC 정보 주입
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(props.getProperty("db.url"));
-        config.setUsername(props.getProperty("db.username"));
-        config.setPassword(props.getProperty("db.password"));
+        config.setJdbcUrl(props.getProperty("jdbc.url"));
+        config.setUsername(props.getProperty("jdbc.username"));
+        config.setPassword(props.getProperty("jdbc.password"));
         // driverClassName 은 생략 가능
 
         DataSource ds;
@@ -89,6 +89,9 @@ public class MessageRestController extends HttpServlet {
         ChatService chatService = new ChatService(new ChatDAO(ds));
         this.messageService = new MessageService(new MessageDAO(ds), chatService);
     }
+
+
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         System.out.println(">> Incoming POST");
@@ -135,6 +138,7 @@ public class MessageRestController extends HttpServlet {
         System.out.println("sendReq: " + sendReq);
         try {
             SendMessageRes sendRes = messageService.saveMessage(sendReq);
+            System.out.println("sendRes: " + sendRes);
             resp.setStatus(HttpServletResponse.SC_CREATED);
             try (PrintWriter out = resp.getWriter()) {
                 objectMapper.writeValue(out, sendRes);
@@ -145,20 +149,30 @@ public class MessageRestController extends HttpServlet {
     }
 
     private void handleGetMessageHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        System.out.printf("[handleGetMessageHistory] roomId=%s, username=%s%n",
+                req.getParameter("roomId"),
+                req.getParameter("username"));
         String roomIdParam = req.getParameter("roomId");
         String username = req.getParameter("username");
+
+        System.out.println("req : "+req);
         if (roomIdParam == null || username == null) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing roomId or username parameter");
             return;
         }
         Long roomId = Long.valueOf(roomIdParam);
+        System.out.println("roomId: " + roomId);
+
         try {
             List<MessageInfo> messages = messageService.fetchMessages(roomId, username);
             resp.setStatus(HttpServletResponse.SC_OK);
+
+            System.out.println("messages: " + messages);
             try (PrintWriter out = resp.getWriter()) {
                 objectMapper.writeValue(out, messages);
             }
         } catch (SQLException e) {
+            System.out.println(e.getMessage());
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }

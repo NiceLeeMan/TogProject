@@ -28,32 +28,18 @@ public class TestApiConfig {
     }
 
 
-    /**
-     * Constructor takes config.properties loaded externally
-     */
     public TestApiConfig(Properties props) {
         this.instanceProps = props;
     }
 
-
-
-    /**
-     * Get API endpoint by key (e.g. api.baseUrl, api.user.signup)
-     */
     public static String get(String key) {
         return apiProps.getProperty(key);
     }
 
-    /**
-     * Return server config properties (servlet paths, ws.path, server.port)
-     */
     public Properties getProperties() {
         return instanceProps;
     }
 
-    /**
-     * Get server port from config.properties (key: server.port)
-     */
     public int getPort() {
         return Integer.parseInt(instanceProps.getProperty("server.port"));
     }
@@ -68,9 +54,7 @@ public class TestApiConfig {
         }
         return props;
     }
-    /**
-     * Get host name from api.baseUrl (e.g. "https://foo.bar" → "foo.bar")
-     */
+
     public String getHost() {
         String baseUrl = apiProps.getProperty("api.baseUrl");
         try {

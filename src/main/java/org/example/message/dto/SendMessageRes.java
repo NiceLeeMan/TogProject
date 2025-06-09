@@ -30,7 +30,7 @@ public class SendMessageRes {
     public SendMessageRes(Message m) {
         this.msgId = m.getMsgId();
         this.chatRoomId     = m.getRoomId();
-        this.senderId = senderId;
+        this.senderId = m.getSenderId();
         this.contents = m.getContents();
         this.createdAt      = m.getCreatedAt();
     }

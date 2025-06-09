@@ -42,54 +42,57 @@ public class MessageDAO {
      * 특정 방의 가입 이후 메시지 조회 (사용자별)
      */
     public List<MessageInfo> selectChatHistorySinceJoin(Long roomId, String username) throws SQLException {
-        // 1) 사용자 ID 조회
-        Long userId = getUserIdByUsername(username);
-        if (userId == null) {
-            return new ArrayList<>();
-        }
+        String sql =
+                "SELECT " +
+                        "  m.msg_id        AS msgId, " +
+                        "  m.room_id       AS chatRoomId, " +
+                        "  m.sender_id     AS senderId, " +
+                        "  u2.username     AS senderUsername, " +
+                        "  m.contents      AS contents, " +
+                        "  m.created_at    AS createdAt " +
+                        "FROM message m " +
+                        // 1) 아직 나가지 않은 멤버 정보
+                        "JOIN chat_room_member cm " +
+                        "  ON cm.room_id    = m.room_id " +
+                        " AND cm.left_at    IS NULL " +
+                        // 2) username 으로 현재 사용자의 user_id 가져오기
+                        //    (JOIN user 대신 필요하면 `\"user\"` 로 감싸세요)
+                        "JOIN user u1 " +
+                        "  ON u1.id         = cm.user_id " +
+                        " AND u1.username   = ? " +
+                        // 3) 메시지 보낸 사람 조회
+                        "LEFT JOIN user u2 " +
+                        "  ON u2.id         = m.sender_id " +
+                        // 4) 방 ID 필터 및 입장 시점 이후 메시지만
+                        "WHERE m.room_id       = ? " +
+                        "  AND m.created_at   >= cm.joined_at " +
+                        "ORDER BY m.created_at ASC";
 
-        // 2) 가입 시각 조회
-        LocalDateTime joinedAt;
-        String joinedSql = "SELECT joined_at FROM chat_room_member WHERE room_id = ? AND user_id = ?";
-        try (Connection conn = ds.getConnection();
-             PreparedStatement ps = conn.prepareStatement(joinedSql)) {
-            ps.setLong(1, roomId);
-            ps.setLong(2, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    joinedAt = rs.getTimestamp("joined_at").toLocalDateTime();
-                } else {
-                    return new ArrayList<>();
-                }
-            }
-        }
-
-        // 3) 메시지 조회
-        String sql = "SELECT message_id, room_id, sender_id, contents, created_at " +
-                "FROM message WHERE room_id = ? AND created_at >= ? ORDER BY created_at";
-        List<MessageInfo> list = new ArrayList<>();
         try (Connection conn = ds.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, roomId);
-            ps.setTimestamp(2, Timestamp.valueOf(joinedAt));
+            ps.setString(1, username);
+            ps.setLong(2, roomId);
+
             try (ResultSet rs = ps.executeQuery()) {
+                List<MessageInfo> list = new ArrayList<>();
                 while (rs.next()) {
                     MessageInfo info = new MessageInfo();
-                    info.setMsgId(rs.getLong("message_id"));
-                    info.setRoomId(rs.getLong("room_id"));
-                    info.setSenderId(rs.getLong("sender_id"));
+                    info.setMsgId(rs.getLong("msgId"));
+                    info.setRoomId(rs.getLong("chatRoomId"));
+                    info.setSenderId(rs.getLong("senderId"));
+                    info.setSenderUsername(rs.getString("senderUsername"));
                     info.setContents(rs.getString("contents"));
-                    info.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    info.setCreatedAt(rs.getTimestamp("createdAt").toLocalDateTime());
                     list.add(info);
                 }
+                return list;
             }
         }
-        return list;
     }
 
     // 사용자명으로 ID 조회 (user 테이블 사용)
     private Long getUserIdByUsername(String username) throws SQLException {
-        String sql = "SELECT id FROM users WHERE username = ?";
+        String sql = "SELECT id FROM user WHERE username = ?";
         try (Connection conn = ds.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
