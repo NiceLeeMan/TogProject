@@ -74,7 +74,9 @@ public class MessageControllerTest {
 
         @OnClose
         public void onClose(Session session, CloseReason reason) {
+
             System.out.println("클라이언트: 연결이 닫혔습니다. Reason: " + reason);
+
         }
 
         @OnError
@@ -97,7 +99,7 @@ public class MessageControllerTest {
         System.out.println("session 연결 시도. isOpen: " + session.isOpen());
 
         // 테스트 메시지 전송
-        String testJson = "{\"senderId\": 100, \"content\": \"안녕하세요!\"}";
+        String testJson = "{\"roomId\": 56, \"senderId\": 20, \"contents\": \"너나 나가!\"}";
         session.getBasicRemote().sendText(testJson);
 
         // 5초 내 메시지 수신 대기

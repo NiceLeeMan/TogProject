@@ -31,6 +31,7 @@ public class MessageService {
     public SendMessageRes saveMessage(SendMessageReq req) throws SQLException {
 
         System.out.println("saveMessage");
+        System.out.println("req.getRoomId() = " + req.getRoomId());
 
         // 엔티티 생성
         Message msg = new Message();
@@ -40,6 +41,7 @@ public class MessageService {
         msg.setCreatedAt(LocalDateTime.now());
         System.out.println("msg: " + msg);
         // 저장
+        System.out.println("req.getRoomId() = " + req.getRoomId());
         Message saved = messageDAO.save(msg);
 
 

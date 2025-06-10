@@ -85,6 +85,7 @@ public class MessageController {
     @OnOpen
     public void onOpen(Session session) {
         Long chatRoomId = extractChatRoomId(session);
+        System.out.println("onOpen진입완료");
         if (chatRoomId == null) {
             sendError(session, "chatRoomId 파라미터가 없습니다.");
             return;
@@ -104,9 +105,11 @@ public class MessageController {
 
         try {
             SendMessageReq req = objectMapper.readValue(messageJson, SendMessageReq.class);
+            System.out.println("req = " + req);;
             SendMessageRes res = messageService.saveMessage(req);
+            System.out.println("res" + res);
             String resJson = objectMapper.writeValueAsString(res);
-
+            System.out.println("resJson = " + resJson);
             roomSessions.getOrDefault(chatRoomId, Collections.emptySet())
                     .stream()
                     .filter(Session::isOpen)
