@@ -118,6 +118,7 @@ public class ChatControllerTest {
         );
         var res = sendPost(BASE_URL + PATH_GET_JOINED_ROOMS, objectMapper.writeValueAsString(req));
 
+        System.out.println("url"+BASE_URL + PATH_GET_JOINED_ROOMS);
         System.out.println("testGetJoinedRooms res.body = " + res.body);
         assertEquals(200, res.statusCode);
 

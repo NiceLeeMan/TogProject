@@ -178,6 +178,13 @@ public class ChatService {
         return res;
     }
 
+    public boolean exsistChatRoom(JoinChatReqDto reqDto) throws SQLException {
+        Long chatRoomId = reqDto.getChatRoomId();
+        String username = reqDto.getUsername();
+
+        return true;
+    }
+
     public List<RoomInfo> getChatRooms(String username) {
 
         try {

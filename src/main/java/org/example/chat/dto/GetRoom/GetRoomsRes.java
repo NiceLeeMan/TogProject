@@ -6,13 +6,17 @@ import java.util.List;
 
 public class GetRoomsRes {
 
+//    private String username;
+
     private List<RoomInfo> rooms;
 
     public GetRoomsRes() {}
 
     public GetRoomsRes(List<RoomInfo> rooms) {
+//        this.username = username;
         this.rooms = rooms;
     }
+
 
     public List<RoomInfo> getRooms() {
         return rooms;

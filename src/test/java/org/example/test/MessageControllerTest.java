@@ -1,85 +1,111 @@
-package org.example.message.controller;
+package org.example.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import jakarta.websocket.RemoteEndpoint;
-import jakarta.websocket.Session;
-import org.example.message.dto.SendMessageReq;
-import org.example.message.dto.SendMessageRes;
-import org.example.message.service.MessageService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import jakarta.websocket.*;
+import org.example.config.TestApiConfig;
+import org.example.server.EmbeddedServer;
+import org.junit.jupiter.api.*;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
  * MessageController의 onMessage(...) 브로드캐스팅 동작 단위 테스트
  */
-class MessageControllerTest {
 
-    @Mock
-    private MessageService mockMessageService;
 
-    @Mock
-    private Session mockSession;
+/**
+ * MessageController의 onMessage(...) 브로드캐스팅 동작 단위 테스트
+ */
+/**
+ * MessageController의 onMessage(...) 브로드캐스팅 동작 단위 테스트
+ */
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class MessageControllerTest {
+    private static String WEBSOCKET_URL;
+    private static CountDownLatch latch;
+    private static String receivedMessage;
+    private static EmbeddedServer server;
 
-    @Mock
-    private RemoteEndpoint.Async mockAsyncRemote;
+    @BeforeAll
+    static void startServer() throws Exception {
+        // TestApiConfig 기본 생성자로 config.properties와 api.properties 로드
+        TestApiConfig config = new TestApiConfig();
+        server = new EmbeddedServer(config);
+        // WebSocket 엔드포인트 초기화 대기 (필요시)
+        Thread.sleep(200);
 
-    private MessageController controller;
-    private ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        // MessageController(MessageService) 생성자 존재 확인 :contentReference[oaicite:0]{index=0}
-        controller = new MessageController(mockMessageService);
-        when(mockSession.getAsyncRemote()).thenReturn(mockAsyncRemote);
+        // ws.path를 읽어와 URL 구성
+        String host = config.getHost();
+        int port = config.getPort();
+        String path = config.getWsPath();
+
+        WEBSOCKET_URL = String.format("wss://%s%s?chatRoomId=%d", host, path, 56);
+        System.out.println("테스트 WebSocket URL: " + WEBSOCKET_URL);
+    }
+
+    @AfterAll
+    static void stopServer() throws Exception {
+        if (server != null) {
+            server.stop();
+        }
+    }
+
+    @ClientEndpoint
+    public static class TestClientEndpoint {
+        @OnOpen
+        public void onOpen(Session session) {
+            System.out.println("클라이언트: 서버에 연결되었습니다. Session ID: " + session.getId());
+        }
+
+        @OnMessage
+        public void onMessage(String message) {
+            System.out.println("클라이언트: 메시지 수신: " + message);
+            receivedMessage = message;
+            latch.countDown();
+        }
+
+        @OnClose
+        public void onClose(Session session, CloseReason reason) {
+            System.out.println("클라이언트: 연결이 닫혔습니다. Reason: " + reason);
+        }
+
+        @OnError
+        public void onError(Session session, Throwable throwable) {
+            System.err.println("클라이언트: 오류 발생");
+            throwable.printStackTrace();
+        }
     }
 
     @Test
-    void onMessage_shouldCallServiceAndBroadcastToAllOpenSessions() throws IOException, SQLException {
-        // given
-        Long roomId = 56L;
-        SendMessageReq req = new SendMessageReq();
-        req.setRoomId(roomId);
-        req.setSenderId(19L);
-        req.setContents("안녕하세요");
+    @Order(1)
+    void testBroadcasting() throws Exception {
+        latch = new CountDownLatch(1);
 
-        SendMessageRes res = new SendMessageRes();
-        res.setMsgId(1001L);
-        res.setChatRoomId(roomId);
-        res.setSenderId(19L);
-        res.setContents("안녕하세요");
-        res.setCreatedAt(LocalDateTime.now());
+        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+        System.out.println("container 연결성공: " + container);
 
-        String reqJson = mapper.writeValueAsString(req);
-        String resJson = mapper.writeValueAsString(res);
+        // 로컬 EmbeddedServer WebSocket endpoint에 연결
+        Session session = container.connectToServer(TestClientEndpoint.class, new URI(WEBSOCKET_URL));
+        System.out.println("session 연결 시도. isOpen: " + session.isOpen());
 
-        // service.saveMessage(...) 메서드 존재 확인 :contentReference[oaicite:1]{index=1}
-        when(mockMessageService.saveMessage(any(SendMessageReq.class))).thenReturn(res);
+        // 테스트 메시지 전송
+        String testJson = "{\"senderId\": 100, \"content\": \"안녕하세요!\"}";
+        session.getBasicRemote().sendText(testJson);
 
-        // 방(roomId)에 하나의 세션을 미리 추가하기 위해 onOpen 호출 :contentReference[oaicite:2]{index=2}
-        controller.onOpen(mockSession, roomId);
+        // 5초 내 메시지 수신 대기
+        boolean messageReceived = latch.await(5, TimeUnit.SECONDS);
+        assertTrue(messageReceived, "시간 내에 서버로부터 메시지를 받지 못했습니다.");
+        assertNotNull(receivedMessage, "수신된 메시지가 null입니다.");
 
-        // when
-        controller.onMessage(mockSession, roomId, reqJson);
-
-        // then
-        // 1) MessageService.saveMessage 호출 검증
-        verify(mockMessageService, times(1)).saveMessage(any(SendMessageReq.class));
-
-        // 2) getAsyncRemote().sendText(resJson) 호출 검증 (브로드캐스트)
-        verify(mockAsyncRemote, times(1)).sendText(resJson);
+        System.out.println("최종 수신 메시지: " + receivedMessage);
+        session.close();
     }
 }

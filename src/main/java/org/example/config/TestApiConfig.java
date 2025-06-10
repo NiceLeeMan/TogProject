@@ -12,14 +12,16 @@ import java.util.Properties;
  */
 public class TestApiConfig {
     private static final Properties apiProps = new Properties();
+    private static final Properties configProps = new Properties();
     private final Properties instanceProps;
 
     static {
-        try (InputStream in = TestApiConfig.class.getResourceAsStream("/api.properties")) {
-            if (in == null) throw new IOException("api.properties not found");
-            apiProps.load(in);
+        try (InputStream apiIn = TestApiConfig.class.getClassLoader().getResourceAsStream("api.properties");
+             InputStream configIn = TestApiConfig.class.getClassLoader().getResourceAsStream("config.properties")) {
+            if (apiIn != null) apiProps.load(apiIn);
+            if (configIn != null) configProps.load(configIn);
         } catch (IOException e) {
-            throw new ExceptionInInitializerError("api.properties 로드 실패: " + e);
+            throw new RuntimeException("설정 파일 로딩 실패", e);
         }
     }
 
@@ -44,6 +46,9 @@ public class TestApiConfig {
         return Integer.parseInt(instanceProps.getProperty("server.port"));
     }
 
+    public String getWsPath() {
+        return instanceProps.getProperty("ws.path");
+    }
     private static Properties loadConfigProperties() {
         Properties props = new Properties();
         try (InputStream in = TestApiConfig.class.getResourceAsStream("/config.properties")) {
@@ -56,12 +61,17 @@ public class TestApiConfig {
     }
 
     public String getHost() {
-        String baseUrl = apiProps.getProperty("api.baseUrl");
+        String baseUrl = configProps.getProperty("ws.baseUrl");
+        System.out.println("baseUrl: " + baseUrl);
         try {
             URI uri = new URI(baseUrl);
+            System.out.println("baseUrl: " + baseUrl);
             return uri.getHost();
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("api.baseUrl 형식 오류: " + baseUrl, e);
+            throw new IllegalStateException("ws.baseUrl 형식 오류: " + baseUrl, e);
         }
+    }
+    public String getProperty(String key) {
+        return instanceProps.getProperty(key);
     }
 }

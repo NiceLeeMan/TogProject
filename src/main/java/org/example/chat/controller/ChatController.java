@@ -146,6 +146,7 @@ public class ChatController extends HttpServlet {
         JoinChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), JoinChatReqDto.class);
 
 
+
         // 2) 입력 검증: chatRoomId, username 둘 다 필수
         if (reqDto.getChatRoomId() == null || reqDto.getUsername() == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -198,6 +199,7 @@ public class ChatController extends HttpServlet {
             GetRoomsReq reqDto = objectMapper.readValue(request.getReader(), GetRoomsReq.class);
 
             // 2) 서비스 호출
+            String username = reqDto.getUsername();
             List<RoomInfo> rooms = chatService.getChatRooms(reqDto.getUsername());
             System.out.println("rooms: "+rooms);
 

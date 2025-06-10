@@ -1,5 +1,6 @@
 package org.example.server;
 
+import jakarta.websocket.server.ServerEndpointConfig;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
@@ -12,6 +13,7 @@ import org.example.message.controller.MessageRestController;
 import org.example.message.controller.MessageController;
 
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.Properties;
 
 /**
@@ -36,10 +38,14 @@ public class EmbeddedServer {
         this.chatPath    = props.getProperty("servlet.chat");
         this.memoPath    = props.getProperty("servlet.memo");
         this.messagePath = props.getProperty("servlet.messages");
-        this.wsPath      = props.getProperty("ws.path");
+        this.wsPath = config.getWsPath();  // "/ws/chat/{chatRoomId}"
+
 
         int port = config.getPort();
-        server = new Server(port);
+        System.out.println(port);
+
+        // ✅ 외부 요청도 수용하도록 전체 주소로 바인딩
+        server = new Server(new InetSocketAddress("0.0.0.0", port));
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
         server.setHandler(context);
@@ -51,9 +57,17 @@ public class EmbeddedServer {
         context.addServlet(MemoController.class,    memoPath);
         context.addServlet(MessageRestController.class, messagePath);
 
-        // WebSocket endpoint
+        // WebSocket endpoint (wsPath 프로퍼티 사용)
+
+
+        System.out.println(wsPath);
         JakartaWebSocketServletContainerInitializer.configure(context, (servletContext, container) -> {
-            container.addEndpoint(MessageController.class);
+            ServerEndpointConfig cfg = ServerEndpointConfig.Builder
+                    .create(MessageController.class, "/ws/chat")
+                    .configurator(new ServerEndpointConfig.Configurator())
+                    .build();
+            container.addEndpoint(cfg);
+
         });
     }
 
@@ -90,6 +104,7 @@ public class EmbeddedServer {
         EmbeddedServer server = new EmbeddedServer(config);
         server.start();
 
+
         String baseUrl = TestApiConfig.get("api.baseUrl");           // e.g. "http://localhost:8080"
         System.out.println("=== Application URLs ===");
         System.out.println("Base URL          : " + baseUrl);
@@ -103,9 +118,9 @@ public class EmbeddedServer {
         System.out.println("메모조회(get memo)   : " + baseUrl + TestApiConfig.get("api.memo.get"));
         System.out.println("메시지전송(send msg)  : " + baseUrl + TestApiConfig.get("api.messages.send"));
         System.out.println("메시지조회(fetch msg) : " + baseUrl + TestApiConfig.get("api.messages.fetch"));
-        System.out.println("웹소켓(ws path)      : ws://"
-                + config.getHost() + ":" + config.getPort()
-                + TestApiConfig.get("ws.path"));
+        System.out.println("웹소켓(ws path)      : wss://"
+                + config.getHost() + ":"
+                + config.getWsPath());
         System.out.println("========================");
 
 

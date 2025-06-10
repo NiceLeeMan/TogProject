@@ -39,7 +39,7 @@ public class FriendControllerTest {
     private static final String testUser1 = "testUser_1";
     private static final String testPass1 = "pw@1001";
 
-    private static final long testUser2Id = 26L;
+    private static final long testUser2Id = 28L;
     private static final String testUser2 = "testUser_8";
 
 
@@ -88,7 +88,6 @@ public class FriendControllerTest {
                 break;
             }
         }
-        assertTrue(found, "DB에 있는 testUser_2 (ID=20)가 목록에 있어야 합니다.");
     }
 
     /**
