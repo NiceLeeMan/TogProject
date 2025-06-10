@@ -11,17 +11,20 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.chat.dao.ChatDAO;
 import org.example.chat.dto.*;
+import org.example.chat.dto.GetRoom.GetRoomsReq;
+import org.example.chat.dto.GetRoom.GetRoomsRes;
+import org.example.chat.dto.Info.RoomInfo;
+import org.example.chat.dto.outDto.OutChatRoomReqDto;
+import org.example.chat.dto.outDto.OutChatRoomResDto;
 import org.example.chat.service.ChatService;
-import org.example.message.dto.SendMessageReq;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
-
-import static java.lang.System.out;
 
 /**
  * ChatController
@@ -80,6 +83,11 @@ public class ChatController extends HttpServlet {
                 case "/one-to-one/create":
                     handleCreateOneToOne(request, response);
                     break;
+
+                case "/rooms":
+                    handleGetJoinedRoom(request, response);
+                    break;
+
                 case "/group/create":
                     handleCreateGroup(request, response);
                     break;
@@ -89,6 +97,7 @@ public class ChatController extends HttpServlet {
                 case "/leave":
                     handleLeaveChat(request, response);
                     break;
+
                 default:
                     response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     try (PrintWriter out = response.getWriter()) {
@@ -172,6 +181,34 @@ public class ChatController extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {
             objectMapper.writeValue(out, resDto);
+        }
+    }
+
+    private void handleGetJoinedRoom(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            // 1) 요청 바디로부터 DTO 파싱
+            GetRoomsReq reqDto = objectMapper.readValue(request.getReader(), GetRoomsReq.class);
+
+            // 2) 서비스 호출
+            List<RoomInfo> rooms = chatService.getChatRooms(reqDto.getUsername());
+            System.out.println("rooms: "+rooms);
+
+            // 3) 응답 DTO 생성
+            GetRoomsRes resDto = new GetRoomsRes(rooms);
+
+            // 4) JSON 직렬화 및 응답
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_OK);
+            objectMapper.writeValue(response.getWriter(), resDto);
+
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            // DTO 파싱 오류 등 잘못된 요청
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            // 서비스, DAO 레벨 예외
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "채팅방 목록 조회 중 오류가 발생했습니다.");
         }
     }
 

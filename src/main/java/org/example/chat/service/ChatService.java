@@ -3,15 +3,15 @@ package org.example.chat.service;
 import org.example.chat.dao.ChatDAO;
 import org.example.chat.dto.CreateGroupChatReqDto;
 import org.example.chat.dto.CreateOneToOneChatReqDto;
+import org.example.chat.dto.Info.RoomInfo;
 import org.example.chat.dto.JoinChatReqDto;
 import org.example.chat.dto.JoinChatResDto;
-import org.example.chat.dto.MemberInfo;
-import org.example.chat.dto.OutChatRoomReqDto;
-import org.example.chat.dto.OutChatRoomResDto;
+import org.example.chat.dto.Info.MemberInfo;
+import org.example.chat.dto.outDto.OutChatRoomReqDto;
+import org.example.chat.dto.outDto.OutChatRoomResDto;
 import org.example.message.dto.MessageInfo;
 
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -174,11 +174,14 @@ public class ChatService {
         return res;
     }
 
-    /**
-     * 채팅방 존재 여부 확인
-     */
-    public boolean existsRoom(Long roomId) throws SQLException {
-        return chatDAO.existsById(roomId);
-    }
+    public List<RoomInfo> getChatRooms(String username) {
 
+        try {
+            return chatDAO.selectRoomsByUsername(username);
+        } catch (SQLException e) {
+            throw new RuntimeException("채팅방 목록 조회 실패", e);
+        }
+    }
 }
+
+

@@ -1,5 +1,7 @@
-package org.example.chat.dto;
+package org.example.chat.dto.outDto;
 
+
+import org.example.chat.dto.Info.MemberInfo;
 
 import java.time.LocalDateTime;
 import java.util.List;

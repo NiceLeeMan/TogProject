@@ -1,6 +1,7 @@
 package org.example.chat.dao;
 
-import org.example.chat.dto.MemberInfo;
+import org.example.chat.dto.Info.MemberInfo;
+import org.example.chat.dto.Info.RoomInfo;
 import org.example.message.dto.MessageInfo;
 
 import javax.sql.DataSource;
@@ -348,23 +349,6 @@ public class ChatDAO {
         }
     }
 
-    /**
-     * 사용자가 해당 채팅방의 활성(가입) 멤버인지 확인
-     * @param roomId 채팅방 PK
-     * @param userId 사용자 PK
-     * @return true if userId가 roomId에 JOIN 상태로 존재
-     */
-    public boolean isMemberInRoom(Long roomId, Long userId) throws SQLException {
-        String sql = "SELECT 1 FROM chat_room_member WHERE room_id = ? AND user_id = ? AND status = 'ACTIVE'";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, roomId);
-            ps.setLong(2, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        }
-    }
 
     /**
      * 1:1 채팅방: 사용자가 soft‐deleted(나간 상태)였으면 복구하거나,
@@ -516,5 +500,39 @@ public class ChatDAO {
                 conn.setAutoCommit(true);
             }
         }
+    }
+    public List<RoomInfo> selectRoomsByUsername(String username) throws SQLException {
+        String sql =
+                "SELECT r.room_id, r.roomname, r.created_at " +
+                        "FROM chat_room r " +
+                        "JOIN chat_room_member m ON r.room_id = m.room_id " +
+                        "JOIN user u            ON m.user_id = u.id " +
+                        "WHERE u.username = ?";
+
+        List<RoomInfo> list = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                System.out.println("rs = " + rs);
+                while (rs.next()) {
+
+
+                    // 컬럼명 그대로 사용
+                    Long id        = rs.getLong("room_id");
+                    String name    = rs.getString("roomname");
+                    String created = rs.getTimestamp("created_at")
+                            .toLocalDateTime()
+                            .toString();
+
+                    list.add(new RoomInfo(id, name, created));
+                }
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+        return list;
     }
 }

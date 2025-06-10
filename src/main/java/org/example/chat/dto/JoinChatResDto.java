@@ -1,8 +1,8 @@
 package org.example.chat.dto;
 
+import org.example.chat.dto.Info.MemberInfo;
 import org.example.message.dto.MessageInfo;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 

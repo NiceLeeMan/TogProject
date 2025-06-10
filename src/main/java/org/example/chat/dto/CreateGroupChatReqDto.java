@@ -1,5 +1,7 @@
 package org.example.chat.dto;
 
+import org.example.chat.dto.Info.MemberInfo;
+
 import java.util.List;
 
 /**

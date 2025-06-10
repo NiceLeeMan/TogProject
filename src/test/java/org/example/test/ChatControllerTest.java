@@ -39,6 +39,7 @@ public class ChatControllerTest {
     private static final String PATH_GROUP = TestApiConfig.get("api.chat.group");
     private static final String PATH_JOIN = TestApiConfig.get("api.chat.join");
     private static final String PATH_LEAVE = TestApiConfig.get("api.chat.leave");
+    private static final String PATH_GET_JOINED_ROOMS = TestApiConfig.get("api.chat.getJoinedRooms");
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -48,7 +49,7 @@ public class ChatControllerTest {
     private static final String userD = "testUser_4"; // id=22   // 정태우
 
     private static CookieManager cookieManager;
-    private Long oneToOneRoomId;
+    private Long oneToOneRoomId = 58L;
     private Long groupRoomId;
 
     @BeforeAll
@@ -102,6 +103,38 @@ public class ChatControllerTest {
         assertEquals(0, root.get("messages").size());
     }
 
+    /**
+     * 5. 내가 참여중인 채팅방 리스트 조회
+     */
+    @Test
+    @Order(5)
+    void testGetJoinedRooms() throws Exception {
+        // 5-1) userA 로 호출
+        var req = Map.of(
+                "username", userA
+        );
+        var res = sendPost(BASE_URL + PATH_GET_JOINED_ROOMS, objectMapper.writeValueAsString(req));
+
+        System.out.println("testGetJoinedRooms res.body = " + res.body);
+        assertEquals(200, res.statusCode);
+
+        // JSON 파싱
+        JsonNode root = objectMapper.readTree(res.body);
+        assertTrue(root.has("rooms"), "응답에 'rooms' 필드가 있어야 합니다.");
+        JsonNode rooms = root.get("rooms");
+        assertTrue(rooms.isArray(), "'rooms' 필드는 배열이어야 합니다.");
+
+        // userA 는 앞서 1:1 채팅방과 그룹 채팅방, 총 2개에 참여했으므로 size 검증
+
+        // 배열 원소의 필드 검증
+        JsonNode first = rooms.get(0);
+        assertTrue(first.has("roomId"), "각 방에 'roomId'가 있어야 합니다.");
+        assertTrue(first.has("roomName"), "각 방에 'roomName'이 있어야 합니다.");
+        assertTrue(first.has("createdAt"), "각 방에 'createdAt'이 있어야 합니다.");
+    }
+
+
+
 
     /** 3. 채팅방 입장 (1:1 & 그룹 공통) */
     @Test
@@ -109,7 +142,7 @@ public class ChatControllerTest {
     void testJoinChat() throws Exception {
         // 3-1) 1:1 방 입장: userB 재입장
         var join1 = Map.of(
-                "chatRoomId", oneToOneRoomId.toString(),
+                "RoomId", oneToOneRoomId.toString(),
                 "username",   userB
         );
         var res1 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join1));
@@ -122,7 +155,7 @@ public class ChatControllerTest {
 
         // 3-2) 그룹 방 입장: userC 재입장
         var join2 = Map.of(
-                "chatRoomId", groupRoomId.toString(),
+                "RoomId", groupRoomId.toString(),
                 "username",   userC
         );
         var res2 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join2));
