@@ -74,10 +74,11 @@ public class ChatController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = request.getPathInfo(); // 예: "/one-to-one/create"
+        String path = request.getPathInfo();
+        System.out.println("path : " + path);// 예: "/one-to-one/create"
         response.setContentType("application/json; charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-
+        System.out.println("분기문 진입");
         try {
             switch (path) {
                 case "/one-to-one/create":
@@ -91,9 +92,12 @@ public class ChatController extends HttpServlet {
                 case "/group/create":
                     handleCreateGroup(request, response);
                     break;
+
                 case "/join":
+                    System.out.println("join분기문 진입");
                     handleJoinChat(request, response);
                     break;
+
                 case "/leave":
                     handleLeaveChat(request, response);
                     break;
@@ -138,6 +142,7 @@ public class ChatController extends HttpServlet {
 
     private void handleJoinChat(HttpServletRequest request, HttpServletResponse response) throws IOException, SQLException {
         // 요청 JSON → JoinChatReqDto
+        System.out.println("handleJoinChat");
         JoinChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), JoinChatReqDto.class);
 
 
@@ -164,12 +169,15 @@ public class ChatController extends HttpServlet {
 
     private void handleLeaveChat(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // 요청 JSON → OutChatRoomReqDto
+
         OutChatRoomReqDto reqDto = objectMapper.readValue(request.getInputStream(), OutChatRoomReqDto.class);
         // 서비스 호출
         OutChatRoomResDto resDto;
         try {
             resDto = chatService.leaveChatRoom(reqDto);
+            System.out.println("resDto(leaveChatRoom) = " + resDto);
         } catch (SQLException e) {
+            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             try (PrintWriter out = response.getWriter()) {
                 objectMapper.writeValue(out, new ErrorResponse("DB_ERROR", e.getMessage()));

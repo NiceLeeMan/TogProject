@@ -159,6 +159,8 @@ public class ChatService {
         res.setUsername(username);
         res.setLeftAt(LocalDateTime.now());
 
+        System.out.println("res"+res);
+
         if (!anyActive) {
             // 5-A) 마지막 멤버가 떠난 경우 → 방 전체 삭제
             chatDAO.deleteEntireChatRoom(chatRoomId);
@@ -166,7 +168,9 @@ public class ChatService {
             res.setDeleted(true);
         } else {
             // 5-B) 남은 멤버가 있는 경우 → 남은 멤버 목록 조회
+
             List<MemberInfo> remaining = chatDAO.selectActiveMembers(chatRoomId);
+            System.out.println("remaining "+remaining);
             res.setMembers(remaining);
             res.setDeleted(false);
         }

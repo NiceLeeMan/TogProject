@@ -40,7 +40,8 @@ public class ChatControllerTest {
     private static final String PATH_JOIN = TestApiConfig.get("api.chat.join");
     private static final String PATH_LEAVE = TestApiConfig.get("api.chat.leave");
     private static final String PATH_GET_JOINED_ROOMS = TestApiConfig.get("api.chat.getJoinedRooms");
-
+    private static Long oneToOneRoomId ;
+    private static Long groupRoomId;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String userA = "testUser_1"; // id=19
@@ -49,8 +50,6 @@ public class ChatControllerTest {
     private static final String userD = "testUser_4"; // id=22   // 정태우
 
     private static CookieManager cookieManager;
-    private Long oneToOneRoomId = 58L;
-    private Long groupRoomId;
 
     @BeforeAll
     static void setUp() throws Exception {
@@ -77,6 +76,10 @@ public class ChatControllerTest {
         oneToOneRoomId = root.get("chatRoomId").asLong();
         assertEquals(2, root.get("members").size());
         assertEquals(0, root.get("messages").size());
+
+        System.out.println(">> Initialized oneToOneRoomId=" + oneToOneRoomId);
+        assertNotNull(oneToOneRoomId);
+
     }
 
     /**
@@ -107,7 +110,7 @@ public class ChatControllerTest {
      * 5. 내가 참여중인 채팅방 리스트 조회
      */
     @Test
-    @Order(5)
+    @Order(3)
     void testGetJoinedRooms() throws Exception {
         // 5-1) userA 로 호출
         var req = Map.of(
@@ -138,11 +141,11 @@ public class ChatControllerTest {
 
     /** 3. 채팅방 입장 (1:1 & 그룹 공통) */
     @Test
-    @Order(3)
+    @Order(4)
     void testJoinChat() throws Exception {
         // 3-1) 1:1 방 입장: userB 재입장
         var join1 = Map.of(
-                "RoomId", oneToOneRoomId.toString(),
+                "chatRoomId", oneToOneRoomId.toString(),
                 "username",   userB
         );
         var res1 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join1));
@@ -150,15 +153,17 @@ public class ChatControllerTest {
         System.out.println("testJoinChat (1:1) res1.body = " + res1.body);
 
         assertEquals(200, res1.statusCode);
+        System.out.println("staus"+res1.statusCode);
         var root1 = objectMapper.readTree(res1.body);
         assertEquals(2, root1.get("members").size());
 
         // 3-2) 그룹 방 입장: userC 재입장
         var join2 = Map.of(
-                "RoomId", groupRoomId.toString(),
+                "chatRoomId", groupRoomId.toString(),
                 "username",   userC
         );
         var res2 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join2));
+        System.out.println(BASE_URL + PATH_JOIN);
 
         System.out.println("testJoinChat (그룹) res2.body = " + res2.body);
 
@@ -169,14 +174,19 @@ public class ChatControllerTest {
 
     /** 4. 채팅방 나가기 (1:1 & 그룹 공통) */
     @Test
-    @Order(4)
+    @Order(5)
     void testLeaveChat() throws Exception {
         // 4-1) 1:1 방 나가기: userB 나감
+
+        assertNotNull(oneToOneRoomId, "oneToOneRoomId가 초기화되지 않았습니다!");
+
         var leave1 = Map.of(
                 "chatRoomId", oneToOneRoomId.toString(),
                 "username",   userB
         );
+
         var res1 = sendPost(BASE_URL + PATH_LEAVE, objectMapper.writeValueAsString(leave1));
+        System.out.println("res1진입성공");
         assertEquals(200, res1.statusCode);
 
         System.out.println("testLeaveChat (1:1) res1.body = " + res1.body);
@@ -204,6 +214,7 @@ public class ChatControllerTest {
     // Helper methods
     // -------------------------------------------------------------------
     private HttpResponse sendPost(String url, String body) throws IOException {
+        System.out.println("sendPost url = " + url);
         var conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setRequestMethod("POST");
         if (body != null) {
@@ -215,6 +226,7 @@ public class ChatControllerTest {
         InputStream is = status < 400 ? conn.getInputStream() : conn.getErrorStream();
         var sb = new StringBuilder();
         if (is != null) try (var br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            System.out.println("IF문진입");
             String line; while ((line = br.readLine()) != null) sb.append(line);
         }
         return new HttpResponse(status, sb.toString());
