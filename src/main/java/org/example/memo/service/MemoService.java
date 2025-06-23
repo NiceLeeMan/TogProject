@@ -3,7 +3,7 @@ package org.example.memo.service;
 import org.example.memo.dao.MemoDAO;
 import org.example.memo.dto.*;
 import org.example.memo.entity.Memo;
-import org.example.user.dao.UserDAO;
+import org.example.user.common.dao.UserDAO;
 
 import java.sql.SQLException;
 

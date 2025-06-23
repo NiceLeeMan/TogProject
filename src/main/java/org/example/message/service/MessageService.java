@@ -7,7 +7,6 @@ import org.example.message.dto.MessageInfo;
 import org.example.message.dto.SendMessageReq;
 import org.example.message.dto.SendMessageRes;
 import org.example.message.entity.Message;
-import org.example.user.dao.UserDAO;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;

@@ -1,5 +1,6 @@
 package org.example.chat.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -11,18 +12,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.chat.dao.ChatDAO;
 import org.example.chat.dto.*;
-import org.example.chat.dto.GetRoom.GetRoomsReq;
 import org.example.chat.dto.GetRoom.GetRoomsRes;
 import org.example.chat.dto.Info.RoomInfo;
 import org.example.chat.dto.outDto.OutChatRoomReqDto;
 import org.example.chat.dto.outDto.OutChatRoomResDto;
 import org.example.chat.service.ChatService;
+import org.example.config.TestApiConfig;
+import org.example.message.dao.MessageDAO;
+import org.example.message.dto.MessageInfo;
+import org.example.message.service.MessageService;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -41,13 +48,14 @@ public class ChatController extends HttpServlet {
 
     private ChatService chatService;
     private ObjectMapper objectMapper;
+    private MessageService messageService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         // 1) db.properties 파일을 Resource Stream으로 읽어오기
         Properties props = new Properties();
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("config/db.properties")) {
             if (is == null) {
                 throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
             }
@@ -65,11 +73,15 @@ public class ChatController extends HttpServlet {
 
         // 3) DAO, Service, ObjectMapper 초기화
         ChatDAO chatDAO = new ChatDAO(ds);
+        MessageDAO messageDAO = new MessageDAO(ds);
         this.chatService = new ChatService(chatDAO);
+        this.messageService = new MessageService(messageDAO, this.chatService);
         this.objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
+
+
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -86,6 +98,7 @@ public class ChatController extends HttpServlet {
                     break;
 
                 case "/rooms":
+                    System.out.println("룸 분기 진입");
                     handleGetJoinedRoom(request, response);
                     break;
 
@@ -115,7 +128,34 @@ public class ChatController extends HttpServlet {
             }
         }
     }
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String path = request.getPathInfo();
+        response.setContentType("application/json; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
 
+        try (PrintWriter out = response.getWriter()) {
+            if ("/rooms".equals(path)) {
+                handleGetJoinedRoom(request, response);
+            }
+            else if ("/messages".equals(path)) {
+                // 메시지 조회 처리
+                try {
+                    handleFetchMessages(request, response);
+                } catch (SQLException e) {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    objectMapper.writeValue(out, new ErrorResponse("DB_ERROR", e.getMessage()));
+                }
+            }
+            else {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                out.write("{\"error\":\"지원하지 않는 GET 경로입니다.\"}");
+            }
+        } catch (IllegalArgumentException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
     private void handleCreateOneToOne(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // 요청 JSON → CreateOneToOneChatReqDto
         CreateOneToOneChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), CreateOneToOneChatReqDto.class);
@@ -140,33 +180,45 @@ public class ChatController extends HttpServlet {
         }
     }
 
-    private void handleJoinChat(HttpServletRequest request, HttpServletResponse response) throws IOException, SQLException {
-        // 요청 JSON → JoinChatReqDto
-        System.out.println("handleJoinChat");
+    private void handleJoinChat(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, SQLException {
         JoinChatReqDto reqDto = objectMapper.readValue(request.getInputStream(), JoinChatReqDto.class);
-
-
-
-        // 2) 입력 검증: chatRoomId, username 둘 다 필수
         if (reqDto.getChatRoomId() == null || reqDto.getUsername() == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             try (PrintWriter out = response.getWriter()) {
-                objectMapper.writeValue(out, new ErrorResponse(
-                        "INVALID_REQUEST",
-                        "chatRoomId and username are required"
-                ));
+                objectMapper.writeValue(out,
+                        new ErrorResponse("INVALID_REQUEST", "chatRoomId and username are required")
+                );
             }
             return;
         }
-        // 서비스 호출
+
+        // 1) 가입 처리 (이때 JoinChatResDto.members가 채워져 반환됩니다)
         JoinChatResDto resDto = chatService.joinChat(reqDto);
 
-        // 응답 JSON 쓰기
+        // 2) 메시지 이력 조회
+        String fetchUrl = TestApiConfig.get("api.baseUrl")
+                + TestApiConfig.get("api.messages.fetch")
+                + "?chatRoomId="  + reqDto.getChatRoomId()
+                + "&username="    + URLEncoder.encode(reqDto.getUsername(), StandardCharsets.UTF_8);
+        HttpResponse fetchRes = sendGet(fetchUrl);
+        System.out.println("[handleJoinChat] Fetch URL -> " + fetchUrl);
+        List<MessageInfo> history = Collections.emptyList();
+        if (fetchRes.statusCode == 200 && !fetchRes.body.isEmpty()) {
+            history = objectMapper.readValue(
+                    fetchRes.body,
+                    new TypeReference<List<MessageInfo>>() {}
+            );
+        }
+        resDto.setMessages(history);
+
+        // 3) 최종 응답
         response.setStatus(HttpServletResponse.SC_OK);
         try (PrintWriter out = response.getWriter()) {
             objectMapper.writeValue(out, resDto);
         }
     }
+
 
     private void handleLeaveChat(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // 요청 JSON → OutChatRoomReqDto
@@ -194,34 +246,71 @@ public class ChatController extends HttpServlet {
     }
 
     private void handleGetJoinedRoom(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        try {
-            // 1) 요청 바디로부터 DTO 파싱
-            GetRoomsReq reqDto = objectMapper.readValue(request.getReader(), GetRoomsReq.class);
+        // 1) 쿼리 파라미터에서 username 추출
+        String username = request.getParameter("username");
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("username 파라미터가 필요합니다.");
+        }
 
-            // 2) 서비스 호출
-            String username = reqDto.getUsername();
-            List<RoomInfo> rooms = chatService.getChatRooms(reqDto.getUsername());
-            System.out.println("rooms: "+rooms);
+        // 2) 서비스 호출
+        List<RoomInfo> rooms = chatService.getChatRooms(username);
 
-            // 3) 응답 DTO 생성
-            GetRoomsRes resDto = new GetRoomsRes(rooms);
+        // 3) 응답 DTO 생성
+        GetRoomsRes resDto = new GetRoomsRes(rooms);
 
-            // 4) JSON 직렬화 및 응답
-            response.setContentType("application/json;charset=UTF-8");
-            response.setStatus(HttpServletResponse.SC_OK);
-            objectMapper.writeValue(response.getWriter(), resDto);
+        // 4) JSON 직렬화 및 응답
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.getWriter().write(objectMapper.writeValueAsString(resDto));
+    }
+    private void handleFetchMessages(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, SQLException {
+        Long roomId = Long.valueOf(request.getParameter("chatRoomId"));
+        String username = request.getParameter("username");
 
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            // DTO 파싱 오류 등 잘못된 요청
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            // 서비스, DAO 레벨 예외
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "채팅방 목록 조회 중 오류가 발생했습니다.");
+        List<MessageInfo> messages = messageService.fetchMessages(roomId, username);
+        response.setStatus(HttpServletResponse.SC_OK);
+        objectMapper.writeValue(response.getWriter(), messages);
+    }
+    // --------------------------------------------------
+// HTTP GET 요청 헬퍼
+// --------------------------------------------------
+    private static HttpResponse sendGet(String urlStr) throws IOException {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+
+        int status = conn.getResponseCode();
+        String body = readBody(conn, status);
+        return new HttpResponse(status, body);
+    }
+
+    private static String readBody(HttpURLConnection conn, int status) throws IOException {
+        InputStream is = (status >= 200 && status < 400)
+                ? conn.getInputStream()
+                : conn.getErrorStream();
+        if (is == null) return "";
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString();
+        }
+    }
+
+    private static class HttpResponse {
+        final int statusCode;
+        final String body;
+        HttpResponse(int statusCode, String body) {
+            this.statusCode = statusCode;
+            this.body       = body;
         }
     }
 
 
-
 }
+
+
+
+

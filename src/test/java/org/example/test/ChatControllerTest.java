@@ -6,230 +6,214 @@ import org.example.config.TestApiConfig;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * ChatController 통합 테스트 (기존 예시 유저를 실제 유저 테이블의 사용자로 변경)
- *
- * - 서버 주소: http://localhost:8080
- * - API 경로:
- *     • 1:1 채팅방 생성    : POST /api/chat/one-to-one/create
- *     • 그룹 채팅방 생성   : POST /api/chat/group/create
- *     • 채팅방 나가기     : POST /api/chat/leave
- *     • 채팅방 재입장     : POST /api/chat/join
- *     • 메시지 전송       : POST /api/chat/send   (1:1 재가입용)
- *
- * 반드시 테스트를 실행하기 전에 Jetty 서버(EmbeddedServer)가 기동 중이어야 합니다.
+ * ChatController 통합 테스트
  */
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ChatControllerTest {
 
-    private static final String BASE_URL = TestApiConfig.get("api.baseUrl");
-    private static final String PATH_ONE_TO_ONE = TestApiConfig.get("api.chat.oneToOne");
-    private static final String PATH_GROUP = TestApiConfig.get("api.chat.group");
-    private static final String PATH_JOIN = TestApiConfig.get("api.chat.join");
-    private static final String PATH_LEAVE = TestApiConfig.get("api.chat.leave");
+    private static final String BASE_URL              = TestApiConfig.get("api.baseUrl");
+    private static final String PATH_ONE_TO_ONE       = TestApiConfig.get("api.chat.oneToOne");
+    private static final String PATH_GROUP            = TestApiConfig.get("api.chat.group");
+    private static final String PATH_JOIN             = TestApiConfig.get("api.chat.join");
+    private static final String PATH_LEAVE            = TestApiConfig.get("api.chat.leave");
     private static final String PATH_GET_JOINED_ROOMS = TestApiConfig.get("api.chat.getJoinedRooms");
-    private static Long oneToOneRoomId ;
+    private static final String PATH_SEND             = TestApiConfig.get("api.chat.send");
+
+    private static Long oneToOneRoomId;
     private static Long groupRoomId;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper    = new ObjectMapper();
 
     private static final String userA = "testUser_1"; // id=19
     private static final String userB = "testUser_2"; // id=20
     private static final String userC = "testUser_3"; // id=21
-    private static final String userD = "testUser_4"; // id=22   // 정태우
-
-    private static CookieManager cookieManager;
+    private static final String userD = "testUser_4"; // id=22
 
     @BeforeAll
-    static void setUp() throws Exception {
-        // 1) CookieManager 설정 (로그인 세션 유지용)
-        cookieManager = new CookieManager();
-        CookieHandler.setDefault(cookieManager);
+    void setUp() {
+        // 필요한 초기화 (예: 쿠키 매니저 설정) 수행
     }
 
-    /**
-     * 1. 1:1 채팅방 생성
-     */
     @Test
     @Order(1)
-    void testCreateOneToOneChat() throws Exception {
-        var req = Map.of(
+    void testCreateOneToOneChat() throws IOException {
+        Map<String,String> req = Map.of(
                 "username",       userA,
                 "friendUsername", userB
         );
-        var res = sendPost(BASE_URL + PATH_ONE_TO_ONE, objectMapper.writeValueAsString(req));
-
-        System.out.println("testCreateOneToOneChat res.body = " + res.body);
+        HttpResponse res = sendPost(BASE_URL + PATH_ONE_TO_ONE, objectMapper.writeValueAsString(req));
         assertEquals(200, res.statusCode);
-        var root = objectMapper.readTree(res.body);
+
+        JsonNode root = objectMapper.readTree(res.body);
         oneToOneRoomId = root.get("chatRoomId").asLong();
         assertEquals(2, root.get("members").size());
         assertEquals(0, root.get("messages").size());
-
-        System.out.println(">> Initialized oneToOneRoomId=" + oneToOneRoomId);
-        assertNotNull(oneToOneRoomId);
-
     }
 
-    /**
-     * 2. 그룹 채팅방 생성
-     */
     @Test
     @Order(2)
-    void testCreateGroupChat() throws Exception {
+    void testCreateGroupChat() throws IOException {
         Map<String,Object> req = new HashMap<>();
-        req.put("username", userA);
+        req.put("username",     userA);
         req.put("chatRoomName", "GroupTest");
         req.put("members", List.of(
                 Map.of("username", userB),
                 Map.of("username", userC),
                 Map.of("username", userD)
         ));
-        var res = sendPost(BASE_URL + PATH_GROUP, objectMapper.writeValueAsString(req));
-
-        System.out.println("testCreateGroupChat res.body = " + res.body);
+        HttpResponse res = sendPost(BASE_URL + PATH_GROUP, objectMapper.writeValueAsString(req));
         assertEquals(200, res.statusCode);
-        var root = objectMapper.readTree(res.body);
+
+        JsonNode root = objectMapper.readTree(res.body);
         groupRoomId = root.get("chatRoomId").asLong();
         assertEquals(4, root.get("members").size());
         assertEquals(0, root.get("messages").size());
     }
 
-    /**
-     * 5. 내가 참여중인 채팅방 리스트 조회
-     */
     @Test
     @Order(3)
-    void testGetJoinedRooms() throws Exception {
-        // 5-1) userA 로 호출
-        var req = Map.of(
-                "username", userA
-        );
-        var res = sendPost(BASE_URL + PATH_GET_JOINED_ROOMS, objectMapper.writeValueAsString(req));
-
-        System.out.println("url"+BASE_URL + PATH_GET_JOINED_ROOMS);
-        System.out.println("testGetJoinedRooms res.body = " + res.body);
+    void testGetJoinedRooms() throws IOException {
+        String url = BASE_URL + PATH_GET_JOINED_ROOMS
+                + "?username=" + URLEncoder.encode(userA, StandardCharsets.UTF_8);
+        HttpResponse res = sendGet(url);
         assertEquals(200, res.statusCode);
 
-        // JSON 파싱
         JsonNode root = objectMapper.readTree(res.body);
-        assertTrue(root.has("rooms"), "응답에 'rooms' 필드가 있어야 합니다.");
+        assertTrue(root.has("rooms"));
         JsonNode rooms = root.get("rooms");
-        assertTrue(rooms.isArray(), "'rooms' 필드는 배열이어야 합니다.");
-
-        // userA 는 앞서 1:1 채팅방과 그룹 채팅방, 총 2개에 참여했으므로 size 검증
-
-        // 배열 원소의 필드 검증
+        assertTrue(rooms.isArray());
+        assertTrue(rooms.size() >= 2);
         JsonNode first = rooms.get(0);
-        assertTrue(first.has("roomId"), "각 방에 'roomId'가 있어야 합니다.");
-        assertTrue(first.has("roomName"), "각 방에 'roomName'이 있어야 합니다.");
-        assertTrue(first.has("createdAt"), "각 방에 'createdAt'이 있어야 합니다.");
+        assertTrue(first.has("roomId"));
+        assertTrue(first.has("roomName"));
+        assertTrue(first.has("createdAt"));
     }
 
-
-
-
-    /** 3. 채팅방 입장 (1:1 & 그룹 공통) */
     @Test
     @Order(4)
-    void testJoinChat() throws Exception {
-        // 3-1) 1:1 방 입장: userB 재입장
-        var join1 = Map.of(
+    void testJoinChat() throws IOException {
+        // ─── 1:1 방 ─────────────────────────────────────
+        // 메시지 한 건 삽입
+        Map<String,Object> sendReq1 = Map.of(
+                "chatRoomId", oneToOneRoomId,
+                "senderId",   19L,
+                "contents",  "Hello OneToOne"
+        );
+        HttpResponse sendRes1 = sendPost(BASE_URL + PATH_SEND, objectMapper.writeValueAsString(sendReq1));
+        assertEquals(201, sendRes1.statusCode);
+
+        // userB 재입장
+        Map<String,String> join1 = Map.of(
                 "chatRoomId", oneToOneRoomId.toString(),
-                "username",   userB
+                "username",  userB
         );
-        var res1 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join1));
-
-        System.out.println("testJoinChat (1:1) res1.body = " + res1.body);
-
+        HttpResponse res1 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join1));
         assertEquals(200, res1.statusCode);
-        System.out.println("staus"+res1.statusCode);
-        var root1 = objectMapper.readTree(res1.body);
-        assertEquals(2, root1.get("members").size());
 
-        // 3-2) 그룹 방 입장: userC 재입장
-        var join2 = Map.of(
-                "chatRoomId", groupRoomId.toString(),
-                "username",   userC
+        JsonNode root1 = objectMapper.readTree(res1.body);
+        assertEquals(oneToOneRoomId.longValue(), root1.get("chatRoomId").asLong());
+        assertTrue(root1.get("members").isArray() && root1.get("members").size() == 2);
+
+        JsonNode joinMsgs1 = root1.get("messages");
+        assertTrue(joinMsgs1.isArray());
+        assertEquals(1, joinMsgs1.size());
+        assertEquals("Hello OneToOne", joinMsgs1.get(0).get("content").asText());
+
+        // ─── 그룹 방 ─────────────────────────────────────
+        // 메시지 한 건 삽입
+        Map<String,Object> sendReq2 = Map.of(
+                "chatRoomId", groupRoomId,
+                "senderId",   19L,
+                "contents",  "Hello Group"
         );
-        var res2 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join2));
-        System.out.println(BASE_URL + PATH_JOIN);
+        HttpResponse sendRes2 = sendPost(BASE_URL + PATH_SEND, objectMapper.writeValueAsString(sendReq2));
+        assertEquals(201, sendRes2.statusCode);
 
-        System.out.println("testJoinChat (그룹) res2.body = " + res2.body);
-
+        // userC 재입장
+        Map<String,String> join2 = Map.of(
+                "chatRoomId", groupRoomId.toString(),
+                "username",  userC
+        );
+        HttpResponse res2 = sendPost(BASE_URL + PATH_JOIN, objectMapper.writeValueAsString(join2));
         assertEquals(200, res2.statusCode);
-        var root2 = objectMapper.readTree(res2.body);
-        assertEquals(4, root2.get("members").size(), "그룹 방 입장 후에도 멤버 수는 유지되어야 합니다.");
+
+        JsonNode root2 = objectMapper.readTree(res2.body);
+        assertEquals(groupRoomId.longValue(), root2.get("chatRoomId").asLong());
+        assertTrue(root2.get("members").isArray() && root2.get("members").size() == 4);
+
+        JsonNode joinMsgs2 = root2.get("messages");
+        assertTrue(joinMsgs2.isArray());
+        assertEquals(1, joinMsgs2.size());
+        assertEquals("Hello Group", joinMsgs2.get(0).get("content").asText());
     }
 
-    /** 4. 채팅방 나가기 (1:1 & 그룹 공통) */
     @Test
     @Order(5)
-    void testLeaveChat() throws Exception {
-        // 4-1) 1:1 방 나가기: userB 나감
-
-        assertNotNull(oneToOneRoomId, "oneToOneRoomId가 초기화되지 않았습니다!");
-
-        var leave1 = Map.of(
+    void testLeaveChat() throws IOException {
+        // 1:1 방 나가기
+        Map<String,String> leave1 = Map.of(
                 "chatRoomId", oneToOneRoomId.toString(),
-                "username",   userB
+                "username",  userB
         );
-
-        var res1 = sendPost(BASE_URL + PATH_LEAVE, objectMapper.writeValueAsString(leave1));
-        System.out.println("res1진입성공");
+        HttpResponse res1 = sendPost(BASE_URL + PATH_LEAVE, objectMapper.writeValueAsString(leave1));
         assertEquals(200, res1.statusCode);
-
-        System.out.println("testLeaveChat (1:1) res1.body = " + res1.body);
-
-        var root1 = objectMapper.readTree(res1.body);
+        JsonNode root1 = objectMapper.readTree(res1.body);
         assertEquals(1, root1.get("members").size());
 
-        // 4-2) 그룹 방 나가기: userE 나감
-        var leave2 = Map.of(
+        // 그룹 방 나가기
+        Map<String,String> leave2 = Map.of(
                 "chatRoomId", groupRoomId.toString(),
-                "username",   userD
+                "username",  userD
         );
-        var res2 = sendPost(BASE_URL + PATH_LEAVE, objectMapper.writeValueAsString(leave2));
-
-        System.out.println("testLeaveChat (그룹) res2.body = " + res2.body);
-
+        HttpResponse res2 = sendPost(BASE_URL + PATH_LEAVE, objectMapper.writeValueAsString(leave2));
         assertEquals(200, res2.statusCode);
-        var root2 = objectMapper.readTree(res2.body);
+        JsonNode root2 = objectMapper.readTree(res2.body);
         assertEquals(3, root2.get("members").size());
     }
-
-
 
     // -------------------------------------------------------------------
     // Helper methods
     // -------------------------------------------------------------------
     private HttpResponse sendPost(String url, String body) throws IOException {
-        System.out.println("sendPost url = " + url);
-        var conn = (HttpURLConnection)new URL(url).openConnection();
-        conn.setRequestMethod("POST");
+        return sendRequest(url, "POST", body);
+    }
+
+    private HttpResponse sendGet(String url) throws IOException {
+        return sendRequest(url, "GET", null);
+    }
+
+    private HttpResponse sendRequest(String urlString, String method, String body) throws IOException {
+        System.out.println("sendRequest [" + method + "] url = " + urlString);
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod(method);
+
         if (body != null) {
-            conn.setRequestProperty("Content-Type","application/json; charset=UTF-8");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             conn.setDoOutput(true);
-            try(var os = conn.getOutputStream()) { os.write(body.getBytes(StandardCharsets.UTF_8)); }
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(body.getBytes(StandardCharsets.UTF_8));
+            }
         }
+
         int status = conn.getResponseCode();
-        InputStream is = status < 400 ? conn.getInputStream() : conn.getErrorStream();
-        var sb = new StringBuilder();
-        if (is != null) try (var br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            System.out.println("IF문진입");
-            String line; while ((line = br.readLine()) != null) sb.append(line);
+        InputStream is = (status < 400) ? conn.getInputStream() : conn.getErrorStream();
+
+        StringBuilder sb = new StringBuilder();
+        if (is != null) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+            }
         }
+
         return new HttpResponse(status, sb.toString());
     }
 

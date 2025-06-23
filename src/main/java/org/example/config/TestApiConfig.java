@@ -16,8 +16,8 @@ public class TestApiConfig {
     private final Properties instanceProps;
 
     static {
-        try (InputStream apiIn = TestApiConfig.class.getClassLoader().getResourceAsStream("api.properties");
-             InputStream configIn = TestApiConfig.class.getClassLoader().getResourceAsStream("config.properties")) {
+        try (InputStream apiIn = TestApiConfig.class.getClassLoader().getResourceAsStream("config/api.properties");
+             InputStream configIn = TestApiConfig.class.getClassLoader().getResourceAsStream("config/config.properties")) {
             if (apiIn != null) apiProps.load(apiIn);
             if (configIn != null) configProps.load(configIn);
         } catch (IOException e) {
@@ -51,7 +51,7 @@ public class TestApiConfig {
     }
     private static Properties loadConfigProperties() {
         Properties props = new Properties();
-        try (InputStream in = TestApiConfig.class.getResourceAsStream("/config.properties")) {
+        try (InputStream in = TestApiConfig.class.getResourceAsStream("/config/config.properties")) {
             if (in == null) throw new IOException("config.properties not found");
             props.load(in);
         } catch (IOException e) {

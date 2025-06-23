@@ -15,7 +15,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
 import java.util.Properties;
 
 /**
@@ -36,7 +35,7 @@ public class FriendController extends HttpServlet {
 
         // 1) db.properties 파일 로딩
         Properties props = new Properties();
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("config/db.properties")) {
             if (is == null) {
                 throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
             }

@@ -2,13 +2,10 @@ package org.example.friend.entity;
 
 
 
-import org.example.user.entity.User;
-
 import java.util.Objects;
 
 // UserFriends.java
 
-import java.util.Objects;
 
 /**
  * user_friends 테이블 매핑 엔티티

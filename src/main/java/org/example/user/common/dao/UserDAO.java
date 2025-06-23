@@ -1,10 +1,10 @@
-package org.example.user.dao;
+package org.example.user.common.dao;
 
 
 
 
 import javax.sql.DataSource;
-import org.example.user.entity.User;
+import org.example.user.common.entity.User;
 
 import java.sql.*;
 
@@ -39,11 +39,13 @@ public class UserDAO {
      * 존재하지 않으면 null을 반환합니다.
      */
     public Long findUserIdByUsername(String username) throws SQLException {
+
         String sql = "SELECT id FROM `user` WHERE username = ?";
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
-            System.out.println("username = " + username);
+
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

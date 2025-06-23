@@ -14,6 +14,7 @@ import org.example.message.dto.MessageInfo;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -127,11 +128,9 @@ public class ChatService {
             return dto;
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            return new JoinChatResDto();
+            throw new RuntimeException("채팅방 입장 중 DB 오류", e);
         }
     }
-
     /**
      * 채팅방 나가기 처리 (1:1/그룹 구분 → 삭제 or soft-delete,
      *                마지막 멤버일 경우 방 전체 삭제)
@@ -193,6 +192,17 @@ public class ChatService {
             throw new RuntimeException("채팅방 목록 조회 실패", e);
         }
     }
+//    public List<MessageInfo> getChatHistory(Long chatRoomId) {
+//        if (chatRoomId == null) {
+//            throw new IllegalArgumentException("chatRoomId is required");
+//        }
+////        try {
+//////            List<MessageInfo> history = chatDAO.selectChatHistorySinceJoin(chatRoomId);
+//////            return history != null ? history : Collections.emptyList();
+////        } catch (SQLException e) {
+////            throw new RuntimeException("메시지 내역 조회 중 DB 오류", e);
+////        }
+//    }
 }
 
 

@@ -58,7 +58,7 @@ public class MessageRestController extends HttpServlet {
 
         // 2) db.properties 로드
         Properties props = new Properties();
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("config/db.properties")) {
             if (in == null) {
                 throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
             }

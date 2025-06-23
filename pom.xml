@@ -40,6 +40,17 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.14.0</version>
+        </dependency>
+        <!-- Win32 API 바인딩이 포함된 추가 플랫폼 모듈 -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.14.0</version>
+        </dependency>
 
         <!-- 2) MySQL Connector/J: 버전을 서버(8.0.42)에 맞춤 -->
         <dependency>

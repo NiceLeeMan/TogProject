@@ -1,4 +1,4 @@
-package org.example.user.dto;
+package org.example.user.authentication.dto;
 
 // SignInReqDto.java
 public class SignInReqDto {
@@ -9,8 +9,8 @@ public class SignInReqDto {
     public SignInReqDto() { }
 
     // 전체 필드를 받는 생성자
-    public SignInReqDto(String userId, String password) {
-        this.username = userId;
+    public SignInReqDto(String username, String password) {
+        this.username = username;
         this.password = password;
     }
 

@@ -68,9 +68,6 @@ public class UserControllerTest {
                 objectMapper.writeValueAsString(payload)
         );
 
-        System.out.println("[회원가입 #" + info.getCurrentRepetition() + "] 상태 코드: " + res.statusCode);
-        System.out.println("[회원가입 #" + info.getCurrentRepetition() + "] 응답 바디: " + res.body);
-
         JsonNode root = objectMapper.readTree(res.body);
         if (res.statusCode == 201) {
             Assertions.assertTrue(root.get("success").asBoolean(), "success 플래그는 true여야 합니다.");
@@ -103,7 +100,6 @@ public class UserControllerTest {
                 objectMapper.writeValueAsString(payload)
         );
 
-        System.out.println("resBody: " + res.body + "\n" +"resStatus: " + res.statusCode);
         Assertions.assertEquals(200, res.statusCode);
 
         JsonNode root = objectMapper.readTree(res.body);
@@ -127,9 +123,6 @@ public class UserControllerTest {
                 null
         );
 
-        System.out.println("[로그아웃] 상태 코드: " + res.statusCode);
-        System.out.println("[로그아웃] 응답 바디: " + res.body);
-
         JsonNode root = objectMapper.readTree(res.body);
         if (res.statusCode == 200) {
             Assertions.assertTrue(root.has("message"), "200일 때는 'message' 필드가 있어야 합니다.");
@@ -152,9 +145,6 @@ public class UserControllerTest {
         // 0) 언제나 한 번만 @BeforeAll 에서 세팅된 cookieManager 가 기본 핸들러로 등록되어 있어야 합니다.
 
         CookieHandler.setDefault(cookieManager);
-
-        System.out.println("[Before logout] Stored cookies: "
-                + cookieManager.getCookieStore().getCookies());
 
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -193,9 +183,6 @@ public class UserControllerTest {
                 }
             }
         }
-
-        // 5) 최종 저장된 쿠키 확인
-        System.out.println("Stored cookies AFTER response: " + cookieManager.getCookieStore().getCookies());
 
         return new HttpResponse(status, responseText.toString());
     }

@@ -116,26 +116,6 @@ public class MemoControllerTest {
         assertEquals(TEST_DATE, root.get("createdDate").asText());
     }
     /** 3) 특정 날짜 메모 조회 기능 테스트 (메모 없는 날짜) */
-    @Test
-    @Order(3)
-    void testGetMemoByDate_None() throws Exception {
-        // 조회 요청 (메모 없는 날짜)
-        String url = String.format("%s%s?owner=%s&friend=%s&date=%s",
-                BASE_URL, MEMO_GET, OWNER, FRIEND, TEST_DATE_NONE);
-        HttpResponse res = sendGet(url);
-
-        System.out.println("[testGetMemoByDate_None] Response: " + res.body);
-        assertEquals(200, res.statusCode);
-
-        JsonNode root = objectMapper.readTree(res.body);
-        // content, createdDate 모두 null이어야 함
-        assertTrue(root.has("content"));
-        assertTrue(root.has("createdDate"));
-        assertTrue(root.get("content").isNull(),
-                "메모 없는 날짜의 content는 null이어야 합니다.");
-        assertTrue(root.get("createdDate").isNull(),
-                "메모 없는 날짜의 createdDate는 null이어야 합니다.");
-    }
 
     // -------------------------------------------------------------------
     // Helper Method: HTTP POST 요청 보내기

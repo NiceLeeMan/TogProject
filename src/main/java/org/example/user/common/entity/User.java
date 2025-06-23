@@ -1,4 +1,4 @@
-package org.example.user.entity;
+package org.example.user.common.entity;
 
 
 import org.example.chat.entity.ChatRoomMember;
@@ -7,10 +7,6 @@ import org.example.message.entity.Message;
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * user 테이블 매핑 엔티티
@@ -52,14 +48,14 @@ public class User {
     private List<ChatRoomMember> chatRoomEntries;
 
     // 4) User → List<Message> : 내가 보낸 메시지들
-    private List<Message> messagesSent;
+    private List<Message> messages;
 
     // 기본 생성자: 컬렉션 필드는 빈 ArrayList로 초기화
     public User() {
         this.friends = new ArrayList<>();
         this.memos = new ArrayList<>();
         this.chatRoomEntries = new ArrayList<>();
-        this.messagesSent = new ArrayList<>();
+        this.messages = new ArrayList<>();
     }
 
     /**
@@ -81,7 +77,7 @@ public class User {
         this.friends = new ArrayList<>();
         this.memos = new ArrayList<>();
         this.chatRoomEntries = new ArrayList<>();
-        this.messagesSent = new ArrayList<>();
+        this.messages = new ArrayList<>();
     }
 
     /* ===== Getter / Setter (기본 필드) ===== */
@@ -174,12 +170,12 @@ public class User {
     /**
      * 내가 보낸 메시지들 (Message 객체 리스트)
      */
-    public List<Message> getMessagesSent() {
-        return messagesSent;
+    public List<Message> getMessages() {
+        return messages;
     }
 
-    public void setMessagesSent(List<Message> messagesSent) {
-        this.messagesSent = messagesSent;
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
     }
 
     /* ===== toString, equals, hashCode ===== */
@@ -195,7 +191,7 @@ public class User {
                 ", friendsCount=" + (friends != null ? friends.size() : 0) +
                 ", memosCount=" + (memos != null ? memos.size() : 0) +
                 ", chatRoomsCount=" + (chatRoomEntries != null ? chatRoomEntries.size() : 0) +
-                ", messagesSentCount=" + (messagesSent != null ? messagesSent.size() : 0) +
+                ", messagesSentCount=" + (messages != null ? messages.size() : 0) +
                 '}';
     }
 

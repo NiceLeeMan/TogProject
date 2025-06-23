@@ -8,18 +8,15 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.example.chat.dao.ChatDAO;
 import org.example.chat.service.ChatService;
-import org.example.config.DataSoruceConfig;
 import org.example.message.dao.MessageDAO;
 import org.example.message.dto.*;
 import org.example.message.service.MessageService;
 import jakarta.websocket.*;
 import jakarta.websocket.Session;                       // ← 반드시 jakarta.websocket.Session
-import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.sql.SQLOutput;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.Set;
@@ -53,7 +50,7 @@ public class MessageController {
         try {
             // 1) db.properties 로딩
             Properties props = new Properties();
-            try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream("config/db.properties")) {
                 if (is == null) {
                     throw new RuntimeException("db.properties 파일을 찾을 수 없습니다.");
                 }

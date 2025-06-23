@@ -1,4 +1,4 @@
-package org.example.user.dto;
+package org.example.user.registration.dto;
 
 // SignUpReqDto.java
 public class SignUpReqDto {
@@ -10,9 +10,9 @@ public class SignUpReqDto {
     public SignUpReqDto() { }
 
     // 전체 필드를 받는 생성자
-    public SignUpReqDto(String name, String userId, String password) {
+    public SignUpReqDto(String name, String username, String password) {
         this.name = name;
-        this.username = userId;
+        this.username = username;
         this.password = password;
     }
 

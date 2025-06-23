@@ -25,7 +25,6 @@ public class FriendService {
     private final FriendDAO friendDAO;
 
     public FriendService(FriendDAO friendDAO) {
-
         this.friendDAO = friendDAO;
     }
     /**

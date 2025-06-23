@@ -15,7 +15,7 @@ import org.example.memo.dto.GetMemoRes;
 import org.example.memo.dto.PostMemoReq;
 import org.example.memo.dto.PostMemoRes;
 import org.example.memo.service.MemoService;
-import org.example.user.dao.UserDAO;
+import org.example.user.common.dao.UserDAO;
 
 
 import javax.sql.DataSource;
@@ -49,7 +49,7 @@ public class MemoController extends HttpServlet {
 
         // 1) db.properties 파일을 Resource Stream으로 읽어오기
         Properties props = new Properties();
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("db.properties")) {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("config/db.properties")) {
             if (is == null) {
                 throw new ServletException("db.properties 파일을 찾을 수 없습니다.");
             }
